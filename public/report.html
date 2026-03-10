@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Report a Grievance - Civic Grievance System</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/report.css" />
+  </head>
+  <body>
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1>
+          <i class="fas fa-flag" style="color: #1f4e7a"></i> Report a Grievance
+        </h1>
+        <div class="user-menu">
+          <span class="user-name" id="userName"></span>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grievance-card">
+      <div class="g-header">
+        <h1>
+          <i class="fas fa-flag" style="color: #1f4e7a; margin-right: 8px"></i
+          >Report a Grievance
+        </h1>
+        <div class="subhead">
+          Submit your complaint and we'll connect you with the right department
+          to resolve it.
+        </div>
+        <div class="rewards-badge" id="rewardsBadge">
+          Earn 50 points for each complaint!
+        </div>
+      </div>
+
+      <form id="complaintForm" enctype="multipart/form-data">
+        <div class="form-columns">
+          <div class="left-col">
+            <div class="section">
+              <div class="section-title">
+                <i class="fas fa-tags"></i> Issue Categorization
+              </div>
+              <p
+                style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #3e5a78"
+              >
+                Select the most relevant category for your report.
+              </p>
+              <div class="category-group" id="categoryGroup">
+                <span class="cat-chip" data-category="Road & Infrastructure"
+                  >Road & Infrastructure</span
+                >
+                <span class="cat-chip" data-category="Water Supply"
+                  >Water Supply</span
+                >
+                <span class="cat-chip" data-category="Electricity"
+                  >Electricity</span
+                >
+                <span class="cat-chip" data-category="Waste Management"
+                  >Waste Management</span
+                >
+                <span class="cat-chip" data-category="Public Safety"
+                  >Public Safety</span
+                >
+                <span class="cat-chip" data-category="Other Civic Issues"
+                  >Other</span
+                >
+              </div>
+
+              <div class="emergency-toggle">
+                <label class="switch">
+                  <input
+                    type="checkbox"
+                    id="emergencyCheck"
+                    name="isEmergency"
+                  />
+                  <span class="slider"></span>
+                </label>
+                <span class="emergency-label"
+                  ><i
+                    class="fas fa-exclamation-triangle"
+                    style="color: #c53030"
+                  ></i>
+                  Mark as Emergency</span
+                >
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">
+                <i class="fas fa-pen"></i> Complaint details
+              </div>
+              <div class="field">
+                <label><i class="fas fa-heading"></i> Complaint Title *</label>
+                <input
+                  type="text"
+                  id="complaintTitle"
+                  name="title"
+                  placeholder="e.g. Water leakage in main pipeline"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label
+                  ><i class="fas fa-align-left"></i> Detailed Description
+                  *</label
+                >
+                <textarea
+                  id="complaintDescription"
+                  name="description"
+                  placeholder="Please provide specific details about the issue..."
+                  required
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">
+                <i class="fas fa-location-dot"></i> Location Details
+              </div>
+              <p style="font-size: 0.9rem; margin-bottom: 1rem; color: #3e5a78">
+                <i class="fas fa-building" style="margin-right: 4px"></i> Enter
+                the address where this issue occurred.
+              </p>
+
+              <button
+                type="button"
+                class="get-location-btn"
+                id="getLocationBtn"
+              >
+                <i class="fas fa-location-dot"></i> Get My Current Location
+              </button>
+
+              <div
+                id="map"
+                style="height: 250px; margin-bottom: 1rem; border-radius: 16px"
+              ></div>
+
+              <div class="location-status" id="locationStatus">
+                <i class="fas fa-info-circle"></i> Click on map to set location
+                or use "Get My Current Location" button
+              </div>
+
+              <div class="loc-row">
+                <div class="loc-item">
+                  <label>Address *</label>
+                  <input
+                    type="text"
+                    id="locationAddress"
+                    name="address"
+                    placeholder="e.g. 123 Main Street, City"
+                    required
+                  />
+                </div>
+                <div class="loc-item">
+                  <label
+                    >Nearby Landmarks
+                    <span class="optional-badge">optional</span></label
+                  >
+                  <input
+                    type="text"
+                    id="locationLandmark"
+                    name="landmark"
+                    placeholder="e.g. Near Central Park"
+                  />
+                </div>
+              </div>
+
+              <input
+                type="hidden"
+                id="locationLat"
+                name="lat"
+                value="28.6139"
+              />
+              <input
+                type="hidden"
+                id="locationLng"
+                name="lng"
+                value="77.2090"
+              />
+              <div class="coord-display" id="coordDisplay">
+                Selected: 28.613900, 77.209000
+              </div>
+            </div>
+          </div>
+
+          <div class="right-col">
+            <div class="section">
+              <div class="section-title">
+                <i class="fas fa-paperclip"></i> Evidence & Attachments
+              </div>
+              <p style="font-size: 0.9rem; margin-bottom: 1rem">
+                Supporting photos or videos.
+                <strong>Add up to 5 files (10MB each).</strong>
+              </p>
+              <div class="upload-box" id="uploadBox">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to upload or drag and drop</p>
+                <p class="small-info">Images, PDFs, or videos</p>
+                <input
+                  type="file"
+                  id="fileInput"
+                  name="media"
+                  multiple
+                  accept="image/*,video/*,.pdf,.doc,.docx"
+                  style="display: none"
+                />
+                <span class="file-limit"
+                  ><i class="fas fa-database"></i> Max 5 files</span
+                >
+              </div>
+              <div class="upload-progress" id="uploadProgress">
+                <div class="upload-progress-bar" id="uploadProgressBar"></div>
+              </div>
+              <div id="filePreview" class="file-preview"></div>
+              <div
+                id="fileList"
+                style="margin-top: 10px; font-size: 0.9rem"
+              ></div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">
+                <i class="fas fa-timeline"></i> Expected Timeline
+              </div>
+              <div class="timeline-grid">
+                <div class="tl-item">
+                  <span class="days">Emergency</span>
+                  <div class="status">
+                    <span
+                      style="
+                        background: #fed7d7;
+                        color: #c53030;
+                        padding: 4px 12px;
+                        border-radius: 20px;
+                      "
+                      >24 Hours</span
+                    >
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <span class="days">High Priority</span>
+                  <div class="status">
+                    <span
+                      style="
+                        background: #bee3f8;
+                        color: #2c5282;
+                        padding: 4px 12px;
+                        border-radius: 20px;
+                      "
+                      >2-3 Days</span
+                    >
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <span class="days">Normal</span>
+                  <div class="status">
+                    <span
+                      style="
+                        background: #e2e8f0;
+                        color: #4a5568;
+                        padding: 4px 12px;
+                        border-radius: 20px;
+                      "
+                      >5-7 Days</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">
+                <i class="fas fa-hourglass-half"></i> Processing Guidelines
+              </div>
+              <ul class="deadline-list">
+                <li>
+                  <strong>Emergency:</strong> Immediate attention for safety
+                  issues
+                </li>
+                <li>
+                  <strong>High Priority:</strong> Water, electricity outages -
+                  24-48h response
+                </li>
+                <li>
+                  <strong>Standard:</strong> Regular complaints reviewed within
+                  72h
+                </li>
+                <li>
+                  <strong>Resolution:</strong> Target completion within 7
+                  business days
+                </li>
+              </ul>
+            </div>
+
+            <div class="section">
+              <div class="section-title">
+                <i class="fas fa-star" style="color: #fbbf24"></i> Rewards
+                Program
+              </div>
+              <p style="font-size: 0.95rem; margin-bottom: 1rem">
+                Earn points for every complaint!
+              </p>
+              <div class="template-row">
+                <span
+                  ><i class="fas fa-gem" style="color: #1f4e7a"></i> Current
+                  Points: <strong id="userPoints">150</strong></span
+                >
+                <span class="pill-btn" id="levelBadge">Bronze</span>
+              </div>
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  id="levelProgress"
+                  style="width: 75%"
+                ></div>
+              </div>
+              <p class="small-info" id="nextLevel">
+                Next level: Silver (200 points)
+              </p>
+            </div>
+
+            <div class="section" style="background: #e9f2fa">
+              <div class="submit-row">
+                <p>
+                  <i class="fas fa-check-circle" style="color: #1e7a44"></i>
+                  Ready to Submit?
+                </p>
+                <button type="submit" class="track-link" id="submitBtn">
+                  <i class="fas fa-paper-plane"></i> Submit Complaint
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div class="legal-footer">
+        <div class="copyright">
+          © 2024 Civic Grievance System. All rights reserved.
+        </div>
+        <div class="links">
+          <a href="#">Terms</a> <span style="color: #a0b8cf">|</span>
+          <a href="#">Privacy Policy</a> <span style="color: #a0b8cf">|</span>
+          <a href="#">Contact Support</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      // Check authentication
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      if (!token) {
+        window.location.href = "/index.html";
+      }
+
+      document.getElementById("userName").textContent = user.name || "User";
+
+      // Update rewards display
+      if (user.rewards) {
+        document.getElementById("userPoints").textContent =
+          user.rewards.points || 150;
+        document.getElementById("levelBadge").textContent =
+          user.rewards.level || "Bronze";
+
+        // Update progress bar based on level
+        const points = user.rewards.points || 150;
+        let progress = 0;
+        let nextLevelText = "";
+
+        if (points >= 1000) {
+          progress = 100;
+          nextLevelText = "Maximum level reached!";
+        } else if (points >= 500) {
+          progress = ((points - 500) / 500) * 100;
+          nextLevelText = "Next level: Platinum (1000 points)";
+        } else if (points >= 200) {
+          progress = ((points - 200) / 300) * 100;
+          nextLevelText = "Next level: Gold (500 points)";
+        } else {
+          progress = (points / 200) * 100;
+          nextLevelText = "Next level: Silver (200 points)";
+        }
+
+        document.getElementById("levelProgress").style.width =
+          Math.min(progress, 100) + "%";
+        document.getElementById("nextLevel").textContent = nextLevelText;
+      }
+
+      // Toast notification system
+      function showToast(message, type = "success") {
+        const container = document.getElementById("toastContainer");
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        const icon = document.createElement("i");
+        icon.className = `fas ${type === "success" ? "fa-check-circle" : "fa-exclamation-circle"}`;
+
+        const span = document.createElement("span");
+        span.textContent = message;
+
+        toast.appendChild(icon);
+        toast.appendChild(span);
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.animation = "slideOut 0.3s ease";
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      // Map initialization
+      let map, marker;
+      const defaultLocation = [28.6139, 77.209]; // Delhi
+
+      function initMap() {
+        const mapElement = document.getElementById("map");
+        if (!mapElement || typeof L === "undefined") return;
+
+        map = L.map("map").setView(defaultLocation, 12);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+        }).addTo(map);
+
+        marker = L.marker(defaultLocation, { draggable: true }).addTo(map);
+
+        updateLocationDisplay(defaultLocation[0], defaultLocation[1]);
+
+        marker.on("dragend", function (e) {
+          const latlng = e.target.getLatLng();
+          updateLocationDisplay(latlng.lat, latlng.lng);
+        });
+
+        map.on("click", function (e) {
+          marker.setLatLng(e.latlng);
+          updateLocationDisplay(e.latlng.lat, e.latlng.lng);
+        });
+      }
+
+      function updateLocationDisplay(lat, lng) {
+        document.getElementById("locationLat").value = lat.toFixed(6);
+        document.getElementById("locationLng").value = lng.toFixed(6);
+        document.getElementById("coordDisplay").textContent =
+          `Selected: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+        // Reverse geocoding to get address
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.display_name) {
+              document.getElementById("locationAddress").value =
+                data.display_name.split(",")[0];
+              document.getElementById("locationStatus").innerHTML =
+                `<i class="fas fa-check-circle" style="color: #48bb78;"></i> Location set: ${data.display_name.substring(0, 100)}...`;
+            }
+          })
+          .catch(() => {
+            document.getElementById("locationStatus").innerHTML =
+              `<i class="fas fa-map-marker-alt"></i> Location coordinates set: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          });
+      }
+
+      // Get current location
+      document
+        .getElementById("getLocationBtn")
+        .addEventListener("click", function () {
+          const btn = this;
+          btn.disabled = true;
+          btn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Getting location...';
+
+          if (!navigator.geolocation) {
+            showToast("Geolocation is not supported by your browser", "error");
+            btn.disabled = false;
+            btn.innerHTML =
+              '<i class="fas fa-location-dot"></i> Get My Current Location';
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+
+              map.setView([lat, lng], 15);
+              marker.setLatLng([lat, lng]);
+              updateLocationDisplay(lat, lng);
+
+              btn.disabled = false;
+              btn.innerHTML =
+                '<i class="fas fa-location-dot"></i> Get My Current Location';
+              showToast("Location detected successfully!", "success");
+            },
+            function (error) {
+              showToast("Error getting location: " + error.message, "error");
+              btn.disabled = false;
+              btn.innerHTML =
+                '<i class="fas fa-location-dot"></i> Get My Current Location';
+            },
+          );
+        });
+
+      // File upload handling
+      const uploadBox = document.getElementById("uploadBox");
+      const fileInput = document.getElementById("fileInput");
+      const filePreview = document.getElementById("filePreview");
+      const fileList = document.getElementById("fileList");
+      const uploadProgress = document.getElementById("uploadProgress");
+      const progressBar = document.getElementById("uploadProgressBar");
+
+      let selectedFiles = [];
+
+      uploadBox.addEventListener("click", () => fileInput.click());
+
+      uploadBox.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadBox.style.background = "#e8f0fa";
+      });
+
+      uploadBox.addEventListener("dragleave", () => {
+        uploadBox.style.background = "#f1f6fc";
+      });
+
+      uploadBox.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadBox.style.background = "#f1f6fc";
+        handleFiles(e.dataTransfer.files);
+      });
+
+      fileInput.addEventListener("change", () => {
+        handleFiles(fileInput.files);
+      });
+
+      function handleFiles(files) {
+        if (!files || files.length === 0) return;
+
+        const newFiles = Array.from(files);
+
+        if (selectedFiles.length + newFiles.length > 5) {
+          showToast("Maximum 5 files allowed", "error");
+          return;
+        }
+
+        // Check file sizes
+        for (let file of newFiles) {
+          if (file.size > 10 * 1024 * 1024) {
+            showToast(`File ${file.name} exceeds 10MB limit`, "error");
+            return;
+          }
+        }
+
+        selectedFiles = [...selectedFiles, ...newFiles];
+        updateFilePreview();
+        updateFileList();
+
+        // Reset file input
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach((file) => dataTransfer.items.add(file));
+        fileInput.files = dataTransfer.files;
+      }
+
+      function updateFilePreview() {
+        filePreview.innerHTML = "";
+
+        selectedFiles.forEach((file, index) => {
+          const previewItem = document.createElement("div");
+          previewItem.className = "preview-item";
+
+          if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              previewItem.innerHTML = `
+                            <img src="${e.target.result}" alt="Preview">
+                            <div class="remove-file" onclick="removeFile(${index})">×</div>
+                        `;
+            };
+            reader.readAsDataURL(file);
+          } else {
+            previewItem.innerHTML = `
+                        <div style="padding: 20px; text-align: center; background: #f0f0f0; height: 100%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-file" style="font-size: 24px; color: #667eea;"></i>
+                        </div>
+                        <div class="remove-file" onclick="removeFile(${index})">×</div>
+                    `;
+          }
+
+          filePreview.appendChild(previewItem);
+        });
+      }
+
+      function updateFileList() {
+        if (selectedFiles.length === 0) {
+          fileList.innerHTML = "";
+          return;
+        }
+
+        let html =
+          '<strong>Selected files:</strong><ul style="margin-top: 5px;">';
+        selectedFiles.forEach((file) => {
+          const size = (file.size / 1024).toFixed(1);
+          html += `<li><i class="fas fa-file"></i> ${file.name} (${size} KB)</li>`;
+        });
+        html += "</ul>";
+        fileList.innerHTML = html;
+      }
+
+      window.removeFile = function (index) {
+        selectedFiles.splice(index, 1);
+        updateFilePreview();
+        updateFileList();
+
+        // Update file input
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach((file) => dataTransfer.items.add(file));
+        fileInput.files = dataTransfer.files;
+      };
+
+      // Category selection
+      document.querySelectorAll(".cat-chip").forEach((chip) => {
+        chip.addEventListener("click", function () {
+          document
+            .querySelectorAll(".cat-chip")
+            .forEach((c) => c.classList.remove("active"));
+          this.classList.add("active");
+        });
+      });
+
+      // Form submission
+      document
+        .getElementById("complaintForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const activeChip = document.querySelector(".cat-chip.active");
+          const category = activeChip ? activeChip.dataset.category : null;
+
+          if (!category) {
+            showToast("Please select a category", "error");
+            return;
+          }
+
+          const title = document.getElementById("complaintTitle").value;
+          const description = document.getElementById(
+            "complaintDescription",
+          ).value;
+          const address = document.getElementById("locationAddress").value;
+
+          if (!title || !description || !address) {
+            showToast("Please fill all required fields", "error");
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append("title", title);
+          formData.append("description", description);
+          formData.append("category", category);
+          formData.append(
+            "isEmergency",
+            document.getElementById("emergencyCheck").checked,
+          );
+
+          // Create location object
+          const location = {
+            address: address,
+            landmark: document.getElementById("locationLandmark").value,
+            lat: parseFloat(document.getElementById("locationLat").value),
+            lng: parseFloat(document.getElementById("locationLng").value),
+          };
+          formData.append("location", JSON.stringify(location));
+
+          // Append files
+          selectedFiles.forEach((file) => {
+            formData.append("media", file);
+          });
+
+          const submitBtn = document.getElementById("submitBtn");
+          const originalText = submitBtn.innerHTML;
+          submitBtn.disabled = true;
+          submitBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+          uploadProgress.style.display = "block";
+          progressBar.style.width = "0%";
+
+          // Simulate upload progress
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += 10;
+            progressBar.style.width = progress + "%";
+            if (progress >= 100) clearInterval(interval);
+          }, 200);
+
+          try {
+            const response = await fetch("/api/complaints", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              body: formData,
+            });
+
+            const data = await response.json();
+
+            clearInterval(interval);
+            progressBar.style.width = "100%";
+
+            if (response.ok) {
+              showToast("Complaint submitted successfully!", "success");
+
+              // Update local user points
+              if (user.rewards) {
+                user.rewards.points = (user.rewards.points || 0) + 5;
+                localStorage.setItem("user", JSON.stringify(user));
+              }
+
+              setTimeout(() => {
+                window.location.href = "/complaints.html";
+              }, 2000);
+            } else {
+              showToast("Error: " + data.error, "error");
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = originalText;
+              uploadProgress.style.display = "none";
+            }
+          } catch (error) {
+            console.error("Submission error:", error);
+            showToast("Network error. Please try again.", "error");
+            clearInterval(interval);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            uploadProgress.style.display = "none";
+          }
+        });
+
+      // Logout function
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/index.html";
+      }
+
+      // Initialize
+      initMap();
+
+      // Set default category
+      document.querySelector(".cat-chip").classList.add("active");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Officer Dashboard - Civic Grievance System</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/officer.css" />
+  </head>
+  <body>
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1><i class="fas fa-gavel"></i> Officer Dashboard</h1>
+        <div class="user-menu">
+          <span class="user-name" id="userName">Loading...</span>
+          <button class="refresh-btn" onclick="fetchComplaints()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-tasks" style="color: #667eea"></i> Assigned to Me
+          </h3>
+          <div class="stat-value" id="assignedCount">0</div>
+          <div class="stat-change">Active complaints</div>
+        </div>
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-check-circle" style="color: #48bb78"></i> Resolved
+          </h3>
+          <div class="stat-value" id="resolvedCount">0</div>
+          <div class="stat-change">This month</div>
+        </div>
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-building" style="color: #4299e1"></i> Department
+            Total
+          </h3>
+          <div class="stat-value" id="deptTotal">0</div>
+          <div class="stat-change">All complaints</div>
+        </div>
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-exclamation-triangle" style="color: #f56565"></i>
+            High Priority
+          </h3>
+          <div class="stat-value" id="highPriorityCount">0</div>
+          <div class="stat-change">Need attention</div>
+        </div>
+      </div>
+
+      <div
+        style="
+          background: white;
+          border-radius: 20px;
+          padding: 2rem;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+          "
+        >
+          <h2 style="font-size: 1.5rem; color: #2d3748">
+            <i class="fas fa-clipboard-list"></i> Assigned Complaints
+          </h2>
+          <div class="filter-tabs">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="emergency">
+              Emergency
+            </button>
+            <button class="filter-btn" data-filter="pending">Pending</button>
+            <button class="filter-btn" data-filter="resolved">Resolved</button>
+          </div>
+        </div>
+
+        <div id="complaintsContainer" class="complaints-grid">
+          <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading complaints...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div class="status-modal" id="statusModal">
+      <div class="status-modal-content">
+        <h3><i class="fas fa-edit"></i> Update Complaint Status</h3>
+        <p id="statusComplaintInfo" style="color: #718096"></p>
+
+        <div class="status-info">
+          <div style="margin-bottom: 10px">
+            <strong>Current Status:</strong> <span id="currentStatus"></span>
+          </div>
+          <div>
+            <strong>New Status:</strong>
+            <select
+              id="newStatusSelect"
+              style="
+                width: 100%;
+                padding: 8px;
+                margin-top: 5px;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+              "
+            >
+              <option value="Under Review">Under Review</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+        </div>
+
+        <label style="font-weight: 500; color: #4a5568"
+          >Add Remark (Optional)</label
+        >
+        <textarea
+          id="statusRemark"
+          class="remark-input"
+          placeholder="Add any remarks about this status update..."
+        ></textarea>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeStatusModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-btn confirm"
+            onclick="confirmStatusUpdate()"
+            id="confirmStatusBtn"
+          >
+            Update Status
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completion Photo Upload Modal -->
+    <div class="completion-modal" id="completionPhotoModal">
+      <div class="completion-modal-content">
+        <h3>
+          <i class="fas fa-camera" style="color: #48bb78"></i> Upload Completion
+          Photo
+        </h3>
+        <p
+          id="completionComplaintInfo"
+          style="color: #718096; margin: 15px 0"
+        ></p>
+
+        <div class="completion-upload-box" id="completionUploadBox">
+          <i
+            class="fas fa-cloud-upload-alt"
+            style="font-size: 40px; color: #48bb78"
+          ></i>
+          <p>Click to upload completion photo</p>
+          <p class="small-info" style="font-size: 0.8rem; color: #718096">
+            Image files only (Max 10MB)
+          </p>
+          <input
+            type="file"
+            id="completionFileInput"
+            accept="image/*"
+            style="display: none"
+          />
+        </div>
+
+        <div id="completionPreview" class="completion-preview"></div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px">
+          <button
+            class="logout-btn"
+            onclick="closeCompletionModal()"
+            style="flex: 1; background: #718096"
+          >
+            Cancel
+          </button>
+          <button
+            class="upload-complete-btn"
+            onclick="uploadCompletionPhoto()"
+            id="uploadCompleteBtn"
+            disabled
+            style="flex: 1"
+          >
+            Upload
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Modal -->
+    <div class="media-modal" id="mediaModal">
+      <span class="close-modal" onclick="closeMediaModal()">&times;</span>
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      if (!token || user.role !== "officer") {
+        window.location.href = "/index.html";
+      }
+
+      document.getElementById("userName").textContent = user.name || "Officer";
+
+      let allComplaints = [];
+      let selectedComplaintForPhoto = null;
+      let selectedComplaintForStatus = null;
+      let completionFile = null;
+
+      // Toast notification function
+      function showToast(message, type = "success") {
+        const container = document.getElementById("toastContainer");
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        const icon = document.createElement("i");
+        icon.className = `fas ${type === "success" ? "fa-check-circle" : "fa-exclamation-circle"}`;
+
+        const span = document.createElement("span");
+        span.textContent = message;
+
+        toast.appendChild(icon);
+        toast.appendChild(span);
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.animation = "slideOut 0.3s ease";
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      async function fetchComplaints() {
+        showLoading();
+
+        try {
+          const response = await fetch("/api/complaints", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            allComplaints = data.complaints;
+            displayComplaints(allComplaints);
+            updateStats();
+          } else {
+            showToast("Error fetching complaints", "error");
+            loadMockData();
+          }
+        } catch (error) {
+          console.error("Error fetching complaints:", error);
+          showToast("Failed to fetch complaints. Using demo data.", "error");
+          loadMockData();
+        }
+      }
+
+      function loadMockData() {
+        allComplaints = [
+          {
+            _id: "1",
+            complaintId: "CVC-2401-0001",
+            title: "Water Supply Issue in Sector 22",
+            description:
+              "No water supply since 3 days. Multiple households affected. The water pressure is very low and we are facing severe difficulties.",
+            category: "Water Supply",
+            status: "In Progress",
+            priority: "High",
+            isEmergency: false,
+            location: {
+              address: "Sector 22, Noida",
+              coordinates: { lat: 28.6129, lng: 77.2295 },
+            },
+            media: [
+              {
+                url: "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c7?w=200",
+                type: "image",
+              },
+            ],
+            completionPhoto: null,
+            citizen: {
+              name: "John Doe",
+              email: "john@example.com",
+              phone: "9876543210",
+            },
+            assignedTo: {
+              officer: { name: user.name },
+              department: "Water Supply",
+            },
+            feedback: null,
+            createdAt: "2024-01-15T10:30:00Z",
+            timeline: [
+              {
+                status: "Submitted",
+                remark: "Complaint submitted",
+                updatedAt: "2024-01-15T10:30:00Z",
+              },
+              {
+                status: "Assigned",
+                remark: "Assigned to Water Supply department",
+                updatedAt: "2024-01-15T14:20:00Z",
+              },
+              {
+                status: "In Progress",
+                remark: "Team dispatched for inspection",
+                updatedAt: "2024-01-16T09:15:00Z",
+              },
+            ],
+          },
+          {
+            _id: "2",
+            complaintId: "CVC-2401-0002",
+            title: "Street Light Not Working on Main Road",
+            description:
+              "Street lights on Main Road have been off for a week. This is causing safety concerns for pedestrians and vehicles at night.",
+            category: "Electricity",
+            status: "Under Review",
+            priority: "Medium",
+            isEmergency: false,
+            location: {
+              address: "Main Road, Delhi",
+              coordinates: { lat: 28.6139, lng: 77.209 },
+            },
+            media: [
+              {
+                url: "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c9?w=200",
+                type: "image",
+              },
+            ],
+            completionPhoto: null,
+            citizen: {
+              name: "Jane Smith",
+              email: "jane@example.com",
+              phone: "9876543211",
+            },
+            assignedTo: {
+              officer: { name: user.name },
+              department: "Electricity",
+            },
+            feedback: null,
+            createdAt: "2024-01-14T15:45:00Z",
+            timeline: [
+              {
+                status: "Submitted",
+                remark: "Complaint submitted",
+                updatedAt: "2024-01-14T15:45:00Z",
+              },
+              {
+                status: "Assigned",
+                remark: "Assigned to Electricity department",
+                updatedAt: "2024-01-15T09:30:00Z",
+              },
+            ],
+          },
+          {
+            _id: "3",
+            complaintId: "CVC-2401-0003",
+            title: "Broken Water Pipeline - Emergency",
+            description:
+              "Water pipeline burst causing flooding on the street. Urgent attention needed to prevent further damage.",
+            category: "Water Supply",
+            status: "Emergency",
+            priority: "Emergency",
+            isEmergency: true,
+            location: {
+              address: "MG Road, Bangalore",
+              coordinates: { lat: 12.9716, lng: 77.5946 },
+            },
+            media: [
+              {
+                url: "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c10?w=200",
+                type: "image",
+              },
+              {
+                url: "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c11?w=200",
+                type: "image",
+              },
+            ],
+            completionPhoto: null,
+            citizen: {
+              name: "Raj Kumar",
+              email: "raj@example.com",
+              phone: "9876543212",
+            },
+            assignedTo: {
+              officer: { name: user.name },
+              department: "Water Supply",
+            },
+            feedback: null,
+            createdAt: "2024-01-16T08:00:00Z",
+            timeline: [
+              {
+                status: "Submitted",
+                remark: "Emergency complaint submitted",
+                updatedAt: "2024-01-16T08:00:00Z",
+              },
+              {
+                status: "Emergency",
+                remark: "Marked as emergency - immediate action",
+                updatedAt: "2024-01-16T08:05:00Z",
+              },
+              {
+                status: "Assigned",
+                remark: "Emergency team dispatched",
+                updatedAt: "2024-01-16T08:15:00Z",
+              },
+            ],
+          },
+        ];
+
+        displayComplaints(allComplaints);
+        updateStats();
+      }
+
+      function updateStats() {
+        const assigned = allComplaints.filter(
+          (c) => c.assignedTo?.officer?.name === user.name,
+        ).length;
+        const resolved = allComplaints.filter(
+          (c) => c.status === "Resolved",
+        ).length;
+        const highPriority = allComplaints.filter(
+          (c) => c.priority === "High" || c.priority === "Emergency",
+        ).length;
+
+        document.getElementById("assignedCount").textContent =
+          assigned || allComplaints.length;
+        document.getElementById("resolvedCount").textContent = resolved;
+        document.getElementById("deptTotal").textContent = allComplaints.length;
+        document.getElementById("highPriorityCount").textContent = highPriority;
+      }
+
+      function displayComplaints(complaints) {
+        const container = document.getElementById("complaintsContainer");
+
+        if (complaints.length === 0) {
+          container.innerHTML =
+            '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No complaints assigned</h3><p>You have no complaints assigned to you at this time.</p></div>';
+          return;
+        }
+
+        container.innerHTML = complaints
+          .map((complaint) => {
+            const isEmergency =
+              complaint.isEmergency || complaint.priority === "Emergency";
+            const emergencyClass = isEmergency ? "emergency" : "";
+
+            let priorityClass = "priority-medium";
+            if (
+              complaint.priority === "High" ||
+              complaint.priority === "Emergency"
+            ) {
+              priorityClass = "priority-high";
+            } else if (complaint.priority === "Low") {
+              priorityClass = "priority-low";
+            }
+
+            // Generate media thumbnails
+            const mediaHtml =
+              complaint.media && complaint.media.length > 0
+                ? complaint.media
+                    .slice(0, 3)
+                    .map(
+                      (m) => `
+                        <img src="${m.url}" class="media-thumbnail" onclick="event.stopPropagation(); viewMedia('${m.url}')">
+                    `,
+                    )
+                    .join("")
+                : "";
+
+            // Show completion photo if exists
+            const completionHtml = complaint.completionPhoto
+              ? `<div>
+                        <p style="color: #48bb78; margin-top: 10px;"><i class="fas fa-check-circle"></i> Work Completed</p>
+                        <img src="${complaint.completionPhoto}" class="completion-photo" onclick="event.stopPropagation(); viewMedia('${complaint.completionPhoto}')">
+                    </div>`
+              : complaint.status === "Resolved"
+                ? '<p style="color: #48bb78;">✓ Resolved (No photo)</p>'
+                : `<button class="upload-complete-btn" onclick="event.stopPropagation(); openCompletionModal('${complaint._id}', '${complaint.complaintId}')">
+                            <i class="fas fa-camera"></i> Upload Completion Photo
+                        </button>`;
+
+            // Show rating if feedback exists
+            const ratingHtml = complaint.feedback
+              ? `<div class="rating-stars">${"★".repeat(complaint.feedback.rating)}${"☆".repeat(5 - complaint.feedback.rating)} (${complaint.feedback.rating}/5) - ${complaint.feedback.comment || ""}</div>`
+              : "";
+
+            return `
+                    <div class="complaint-card ${emergencyClass}" onclick="toggleDetails('${complaint._id}')">
+                        <div class="complaint-header">
+                            <span class="complaint-id">${complaint.complaintId}</span>
+                            <span class="priority-badge ${priorityClass}">${complaint.priority}</span>
+                        </div>
+                        <h3 class="complaint-title">${complaint.title}</h3>
+                        <p class="complaint-description">${complaint.description.substring(0, 100)}${complaint.description.length > 100 ? "..." : ""}</p>
+                        
+                        <div class="complaint-meta">
+                            <span><i class="fas fa-tag"></i> ${complaint.category}</span>
+                            <span><i class="fas fa-calendar"></i> ${new Date(complaint.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        
+                        ${
+                          complaint.media && complaint.media.length > 0
+                            ? `
+                        <div class="complaint-media">
+                            ${mediaHtml}
+                            ${complaint.media.length > 3 ? `<span>+${complaint.media.length - 3} more</span>` : ""}
+                        </div>
+                        `
+                            : ""
+                        }
+                        
+                        <div class="complaint-location">
+                            <i class="fas fa-map-marker-alt"></i> ${complaint.location?.address || "Location not specified"}
+                        </div>
+                        
+                        ${ratingHtml}
+                        
+                        <div id="details-${complaint._id}" class="complaint-details">
+                            <div class="detail-section">
+                                <div class="detail-label">Full Description</div>
+                                <p>${complaint.description}</p>
+                            </div>
+                            
+                            ${
+                              complaint.media && complaint.media.length > 0
+                                ? `
+                            <div class="detail-section">
+                                <div class="detail-label">Attached Media</div>
+                                <div class="media-gallery">
+                                    ${complaint.media
+                                      .map(
+                                        (m) => `
+                                        <div class="gallery-item">
+                                            <img src="${m.url}" onclick="event.stopPropagation(); viewMedia('${m.url}')">
+                                            <div class="file-info">
+                                                <i class="fas fa-${m.type === "image" ? "image" : "file"}"></i> ${m.type}
+                                            </div>
+                                        </div>
+                                    `,
+                                      )
+                                      .join("")}
+                                </div>
+                            </div>
+                            `
+                                : ""
+                            }
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Location Details</div>
+                                <p><i class="fas fa-map-pin"></i> ${complaint.location?.address || "Address not provided"}</p>
+                                ${complaint.location?.landmark ? `<p><i class="fas fa-flag"></i> Landmark: ${complaint.location.landmark}</p>` : ""}
+                                ${
+                                  complaint.location?.coordinates
+                                    ? `
+                                    <p><i class="fas fa-location-dot"></i> Coordinates: ${complaint.location.coordinates.lat}, ${complaint.location.coordinates.lng}</p>
+                                    <a href="https://www.google.com/maps?q=${complaint.location.coordinates.lat},${complaint.location.coordinates.lng}" target="_blank" style="color: #667eea; text-decoration: none;">View on Google Maps →</a>
+                                `
+                                    : ""
+                                }
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Citizen Details</div>
+                                <p><i class="fas fa-user"></i> Name: ${complaint.citizen?.name || "Unknown"}</p>
+                                <p><i class="fas fa-envelope"></i> Email: ${complaint.citizen?.email || "Not provided"}</p>
+                                <p><i class="fas fa-phone"></i> Phone: ${complaint.citizen?.phone || "Not provided"}</p>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Timeline</div>
+                                ${
+                                  complaint.timeline
+                                    ? complaint.timeline
+                                        .map(
+                                          (t) => `
+                                    <div style="padding: 8px; border-left: 3px solid #667eea; margin-bottom: 8px; background: white;">
+                                        <div style="font-weight: 600; color: #2d3748;">${t.status}</div>
+                                        <div style="color: #718096; font-size: 12px;">${new Date(t.updatedAt).toLocaleString()}</div>
+                                        <div style="color: #4a5568; font-size: 13px;">${t.remark}</div>
+                                    </div>
+                                `,
+                                        )
+                                        .join("")
+                                    : ""
+                                }
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Update Status</div>
+                                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                                    <button class="update-btn" onclick="event.stopPropagation(); openStatusModal('${complaint._id}', '${complaint.complaintId}', '${complaint.status}')">
+                                        <i class="fas fa-edit"></i> Update Status
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Completion Photo</div>
+                                ${completionHtml}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                            <span style="color: #718096; font-size: 0.9rem;">
+                                <i class="fas fa-user"></i> ${complaint.citizen?.name || "Unknown"}
+                            </span>
+                            <span style="color: #718096; font-size: 0.9rem;">
+                                <i class="fas fa-clock"></i> Click to view details
+                            </span>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+      }
+
+      function showLoading() {
+        document.getElementById("complaintsContainer").innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading complaints...</p>
+                </div>
+            `;
+      }
+
+      function toggleDetails(id) {
+        const detailsDiv = document.getElementById(`details-${id}`);
+        if (detailsDiv) {
+          detailsDiv.classList.toggle("active");
+        }
+      }
+
+      // Status Modal Functions
+      function openStatusModal(complaintId, complaintNumber, currentStatus) {
+        selectedComplaintForStatus = complaintId;
+        document.getElementById("statusComplaintInfo").innerHTML =
+          `<strong>Complaint:</strong> ${complaintNumber}`;
+        document.getElementById("currentStatus").textContent = currentStatus;
+
+        // Set the dropdown to current status
+        const select = document.getElementById("newStatusSelect");
+        for (let option of select.options) {
+          if (option.value === currentStatus) {
+            option.selected = true;
+          }
+        }
+
+        document.getElementById("statusRemark").value = "";
+        document.getElementById("statusModal").classList.add("active");
+      }
+
+      function closeStatusModal() {
+        document.getElementById("statusModal").classList.remove("active");
+        selectedComplaintForStatus = null;
+      }
+
+      async function confirmStatusUpdate() {
+        if (!selectedComplaintForStatus) return;
+
+        const status = document.getElementById("newStatusSelect").value;
+        const remark = document.getElementById("statusRemark").value;
+
+        const confirmBtn = document.getElementById("confirmStatusBtn");
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+        try {
+          const response = await fetch(
+            `/api/complaints/${selectedComplaintForStatus}/status`,
+            {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status,
+                remark: remark || `Status updated to ${status}`,
+              }),
+            },
+          );
+
+          if (response.ok) {
+            showToast("Status updated successfully!", "success");
+            closeStatusModal();
+            fetchComplaints();
+          } else {
+            const data = await response.json();
+            showToast("Error: " + data.error, "error");
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalText;
+          }
+        } catch (error) {
+          console.error("Update error:", error);
+          showToast("Failed to update status", "error");
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = originalText;
+        }
+      }
+
+      // Completion Photo Functions
+      function openCompletionModal(complaintId, complaintNumber) {
+        selectedComplaintForPhoto = complaintId;
+        document.getElementById("completionComplaintInfo").innerHTML =
+          `<strong>Complaint:</strong> ${complaintNumber}`;
+        document.getElementById("completionPhotoModal").classList.add("active");
+      }
+
+      function closeCompletionModal() {
+        document
+          .getElementById("completionPhotoModal")
+          .classList.remove("active");
+        selectedComplaintForPhoto = null;
+        completionFile = null;
+        document.getElementById("completionPreview").innerHTML = "";
+        document.getElementById("uploadCompleteBtn").disabled = true;
+      }
+
+      // File upload handling
+      const completionUploadBox = document.getElementById(
+        "completionUploadBox",
+      );
+      const completionFileInput = document.getElementById(
+        "completionFileInput",
+      );
+
+      if (completionUploadBox) {
+        completionUploadBox.addEventListener("click", () =>
+          completionFileInput.click(),
+        );
+
+        completionUploadBox.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          completionUploadBox.style.background = "#e6ffed";
+        });
+
+        completionUploadBox.addEventListener("dragleave", () => {
+          completionUploadBox.style.background = "#f0fff4";
+        });
+
+        completionUploadBox.addEventListener("drop", (e) => {
+          e.preventDefault();
+          completionUploadBox.style.background = "#f0fff4";
+          handleCompletionFile(e.dataTransfer.files[0]);
+        });
+      }
+
+      if (completionFileInput) {
+        completionFileInput.addEventListener("change", () => {
+          handleCompletionFile(completionFileInput.files[0]);
+        });
+      }
+
+      function handleCompletionFile(file) {
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+          showToast("Please select an image file", "error");
+          return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+          showToast("File size must be less than 10MB", "error");
+          return;
+        }
+
+        completionFile = file;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById("completionPreview").innerHTML = `
+                    <img src="${e.target.result}" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                `;
+        };
+        reader.readAsDataURL(file);
+
+        document.getElementById("uploadCompleteBtn").disabled = false;
+      }
+
+      async function uploadCompletionPhoto() {
+        if (!selectedComplaintForPhoto || !completionFile) return;
+
+        const uploadBtn = document.getElementById("uploadCompleteBtn");
+        const originalText = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+        const formData = new FormData();
+        formData.append("completionPhoto", completionFile);
+
+        try {
+          const response = await fetch(
+            `/api/complaints/${selectedComplaintForPhoto}/completion-photo`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              body: formData,
+            },
+          );
+
+          if (response.ok) {
+            showToast("Completion photo uploaded successfully!", "success");
+            closeCompletionModal();
+            fetchComplaints();
+          } else {
+            const data = await response.json();
+            showToast("Error: " + data.error, "error");
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalText;
+          }
+        } catch (error) {
+          console.error("Upload error:", error);
+          showToast("Failed to upload photo", "error");
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = originalText;
+        }
+      }
+
+      function viewMedia(url) {
+        const modal = document.getElementById("mediaModal");
+        const modalContent = document.getElementById("modalContent");
+
+        if (url.match(/\.(jpg|jpeg|png|gif)$/i)) {
+          modalContent.innerHTML = `<img src="${url}" alt="Media">`;
+        } else if (url.match(/\.(mp4|webm|ogg)$/i)) {
+          modalContent.innerHTML = `<video controls src="${url}" style="max-width: 100%; max-height: 90vh;"></video>`;
+        } else {
+          modalContent.innerHTML = `<iframe src="${url}" style="width: 100%; height: 90vh;"></iframe>`;
+        }
+
+        modal.classList.add("active");
+      }
+
+      function closeMediaModal() {
+        document.getElementById("mediaModal").classList.remove("active");
+        document.getElementById("modalContent").innerHTML = "";
+      }
+
+      // Filter functionality
+      document.querySelectorAll(".filter-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          document
+            .querySelectorAll(".filter-btn")
+            .forEach((b) => b.classList.remove("active"));
+          this.classList.add("active");
+
+          const filter = this.dataset.filter;
+          let filtered = allComplaints;
+
+          if (filter === "emergency") {
+            filtered = allComplaints.filter(
+              (c) => c.isEmergency || c.priority === "Emergency",
+            );
+          } else if (filter === "pending") {
+            filtered = allComplaints.filter((c) => c.status !== "Resolved");
+          } else if (filter === "resolved") {
+            filtered = allComplaints.filter((c) => c.status === "Resolved");
+          }
+
+          displayComplaints(filtered);
+        });
+      });
+
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/index.html";
+      }
+
+      // Load complaints
+      fetchComplaints();
+
+      // Close modals when clicking outside
+      window.onclick = function (event) {
+        const mediaModal = document.getElementById("mediaModal");
+        const completionModal = document.getElementById("completionPhotoModal");
+        const statusModal = document.getElementById("statusModal");
+
+        if (event.target === mediaModal) {
+          closeMediaModal();
+        }
+        if (event.target === completionModal) {
+          closeCompletionModal();
+        }
+        if (event.target === statusModal) {
+          closeStatusModal();
+        }
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard - Civic Grievance System</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas for PDF screenshots -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="./css/admin.css" />
+  </head>
+  <body>
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1><i class="fas fa-user-shield"></i> Admin Dashboard</h1>
+        <div class="user-menu">
+          <span class="user-name" id="userName">Loading...</span>
+          <button class="refresh-btn" onclick="fetchAllData()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+          <button class="pdf-btn" onclick="generatePDFReport()">
+            <i class="fas fa-file-pdf"></i> Download Report
+          </button>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-content">
+      <!-- Filter Section -->
+      <div class="filter-section">
+        <div class="date-range">
+          <input type="date" id="startDate" onchange="filterComplaints()" />
+          <span>to</span>
+          <input type="date" id="endDate" onchange="filterComplaints()" />
+        </div>
+        <select id="deptFilter" onchange="filterComplaints()">
+          <option value="all">All Departments</option>
+          <option value="Road & Infrastructure">Road & Infrastructure</option>
+          <option value="Water Supply">Water Supply</option>
+          <option value="Electricity">Electricity</option>
+          <option value="Waste Management">Waste Management</option>
+          <option value="Public Safety">Public Safety</option>
+        </select>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="dashboard-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #e6f7ff; color: #1890ff">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="stat-value" id="totalComplaints">0</div>
+          <div class="stat-label">Total Complaints</div>
+          <div class="stat-change" id="totalChange">All time</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #fff7e6; color: #fa8c16">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-value" id="pendingComplaints">0</div>
+          <div class="stat-label">Pending Complaints</div>
+          <div class="stat-change" id="pendingChange">Awaiting resolution</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #f6ffed; color: #52c41a">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-value" id="completedComplaints">0</div>
+          <div class="stat-label">Completed</div>
+          <div class="stat-change" id="completedChange">
+            Successfully resolved
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #fff0f6; color: #eb2f96">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="stat-value" id="emergencyCount">0</div>
+          <div class="stat-label">Emergency</div>
+          <div class="stat-change" id="emergencyChange">
+            Urgent attention needed
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="summary-stats">
+        <div class="summary-item">
+          <div class="summary-label">Average Resolution Time</div>
+          <div class="summary-value" id="avgResolutionTime">0 days</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Monthly Average</div>
+          <div class="summary-value" id="monthlyAvg">0</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <!-- Status Distribution Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3><i class="fas fa-chart-pie"></i> Complaint Status</h3>
+            <span class="badge-status" id="statusTotal">Total: 0</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Monthly Performance Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3><i class="fas fa-chart-line"></i> Monthly Performance</h3>
+            <span class="badge-status" id="monthlyTotal">Last 6 months</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="monthlyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Department Distribution Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3><i class="fas fa-building"></i> Department Workload</h3>
+            <span class="badge-status" id="deptTotal">By department</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="deptChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Complaints Table -->
+      <div class="table-wrapper">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="font-size: 18px; color: #2d3748">
+            <i class="fas fa-list"></i> Complaint Management
+          </h3>
+          <div>
+            <input
+              type="text"
+              id="searchInput"
+              class="search-input"
+              placeholder="Search complaints..."
+            />
+          </div>
+        </div>
+
+        <table id="complaintsTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Complaint Details</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Evidence</th>
+              <th>Completion Photo</th>
+              <th>Rating</th>
+              <th>Assigned To</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="complaintsBody">
+            <tr>
+              <td colspan="9" style="text-align: center; padding: 2rem">
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <p>Loading complaints...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div class="assign-modal" id="assignModal">
+      <div class="assign-modal-content">
+        <h3><i class="fas fa-user-tie"></i> Assign Complaint</h3>
+        <p id="complaintInfo" style="color: #718096; margin-bottom: 15px"></p>
+
+        <div style="margin-bottom: 15px">
+          <label style="font-weight: 600; color: #4a5568">Department</label>
+          <select
+            id="deptSelect"
+            style="
+              width: 100%;
+              padding: 10px;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              margin-top: 5px;
+            "
+          >
+            <option value="">All Departments</option>
+            <option value="Road & Infrastructure">Road & Infrastructure</option>
+            <option value="Water Supply">Water Supply</option>
+            <option value="Electricity">Electricity</option>
+            <option value="Waste Management">Waste Management</option>
+            <option value="Public Safety">Public Safety</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 15px">
+          <label style="font-weight: 600; color: #4a5568">Search Officer</label>
+          <input
+            type="text"
+            id="officerSearch"
+            placeholder="Search by name or email..."
+            style="
+              width: 100%;
+              padding: 10px;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              margin-top: 5px;
+            "
+          />
+        </div>
+
+        <div class="officer-list" id="officerList">
+          <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading officers...</p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel-btn" onclick="closeAssignModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-btn assign-btn-confirm"
+            onclick="confirmAssignment()"
+            id="confirmAssignBtn"
+            disabled
+          >
+            Assign
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Modal -->
+    <div class="media-modal" id="mediaModal">
+      <span class="close-modal" onclick="closeMediaModal()">&times;</span>
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      if (!token || user.role !== "admin") {
+        window.location.href = "/index.html";
+      }
+
+      document.getElementById("userName").textContent = user.name || "Admin";
+
+      let allComplaints = [];
+      let allOfficers = [];
+      let selectedComplaintId = null;
+      let selectedOfficerId = null;
+
+      // Chart instances
+      let statusChart, monthlyChart, deptChart;
+
+      // Toast notification function
+      function showToast(message, type = "success") {
+        const container = document.getElementById("toastContainer");
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        const icon = document.createElement("i");
+        icon.className = `fas ${type === "success" ? "fa-check-circle" : "fa-exclamation-circle"}`;
+
+        const span = document.createElement("span");
+        span.textContent = message;
+
+        toast.appendChild(icon);
+        toast.appendChild(span);
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.animation = "slideOut 0.3s ease";
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      // Fetch all data
+      async function fetchAllData() {
+        await fetchComplaints();
+        await fetchOfficers();
+        updateCharts();
+      }
+
+      // Fetch complaints
+      async function fetchComplaints() {
+        try {
+          const response = await fetch("/api/admin/complaints", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            allComplaints = data.complaints;
+            displayComplaints(allComplaints);
+            updateStats();
+          } else {
+            showToast("Error fetching complaints", "error");
+            loadMockData();
+          }
+        } catch (error) {
+          console.error("Error fetching complaints:", error);
+          showToast("Failed to fetch complaints. Using demo data.", "error");
+          loadMockData();
+        }
+      }
+
+      // Load mock data for demo
+      function loadMockData() {
+        allComplaints = [
+          {
+            _id: "1",
+            complaintId: "CVC-2401-0001",
+            title: "Water Supply Issue in Sector 22",
+            description: "No water supply since 3 days",
+            category: "Water Supply",
+            status: "Resolved",
+            isEmergency: false,
+            citizen: { name: "John Doe", email: "john@example.com" },
+            media: [
+              {
+                url: "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c7?w=200",
+              },
+            ],
+            completionPhoto:
+              "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c8?w=400",
+            feedback: { rating: 5, comment: "Good work" },
+            assignedTo: {
+              officer: { name: "Officer Rajesh" },
+              department: "Water Supply",
+            },
+            createdAt: "2024-01-15T10:30:00Z",
+          },
+          {
+            _id: "2",
+            complaintId: "CVC-2401-0002",
+            title: "Street Light Not Working",
+            description: "Street lights on Main Road not working",
+            category: "Electricity",
+            status: "In Progress",
+            isEmergency: false,
+            citizen: { name: "Jane Smith", email: "jane@example.com" },
+            media: [
+              {
+                url: "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c9?w=200",
+              },
+            ],
+            completionPhoto: null,
+            feedback: null,
+            assignedTo: {
+              officer: { name: "Officer Priya" },
+              department: "Electricity",
+            },
+            createdAt: "2024-01-14T15:45:00Z",
+          },
+          {
+            _id: "3",
+            complaintId: "CVC-2401-0003",
+            title: "Broken Water Pipeline - Emergency",
+            description: "Water pipeline burst causing flooding",
+            category: "Water Supply",
+            status: "Emergency",
+            isEmergency: true,
+            citizen: { name: "Raj Kumar", email: "raj@example.com" },
+            media: [
+              {
+                url: "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c10?w=200",
+              },
+            ],
+            completionPhoto: null,
+            feedback: null,
+            assignedTo: null,
+            createdAt: "2024-01-16T08:00:00Z",
+          },
+        ];
+
+        allOfficers = [
+          {
+            _id: "101",
+            name: "Officer Rajesh",
+            email: "rajesh@example.com",
+            department: "Water Supply",
+          },
+          {
+            _id: "102",
+            name: "Officer Priya",
+            email: "priya@example.com",
+            department: "Electricity",
+          },
+          {
+            _id: "103",
+            name: "Officer Abdul",
+            email: "abdul@example.com",
+            department: "Road & Infrastructure",
+          },
+          {
+            _id: "104",
+            name: "Officer Sarah",
+            email: "sarah@example.com",
+            department: "Waste Management",
+          },
+        ];
+
+        displayComplaints(allComplaints);
+        updateStats();
+      }
+
+      // Fetch officers
+      async function fetchOfficers() {
+        try {
+          const response = await fetch("/api/admin/officers", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            allOfficers = data;
+          } else {
+            loadMockData();
+          }
+        } catch (error) {
+          console.error("Error fetching officers:", error);
+        }
+      }
+
+      function updateStats() {
+        const total = allComplaints.length;
+        const pending = allComplaints.filter(
+          (c) => c.status !== "Resolved" && c.status !== "Closed",
+        ).length;
+        const completed = allComplaints.filter(
+          (c) => c.status === "Resolved",
+        ).length;
+        const emergency = allComplaints.filter((c) => c.isEmergency).length;
+
+        document.getElementById("totalComplaints").textContent = total;
+        document.getElementById("pendingComplaints").textContent = pending;
+        document.getElementById("completedComplaints").textContent = completed;
+        document.getElementById("emergencyCount").textContent = emergency;
+
+        // Calculate average resolution time
+        const resolvedComplaints = allComplaints.filter(
+          (c) => c.status === "Resolved" && c.createdAt,
+        );
+        if (resolvedComplaints.length > 0) {
+          const totalDays = resolvedComplaints.reduce((sum, c) => {
+            const created = new Date(c.createdAt);
+            const resolved = new Date(
+              c.resolvedAt || c.updatedAt || c.createdAt,
+            );
+            const days = Math.max(
+              1,
+              Math.ceil((resolved - created) / (1000 * 60 * 60 * 24)),
+            );
+            return sum + days;
+          }, 0);
+          const avgDays = (totalDays / resolvedComplaints.length).toFixed(1);
+          document.getElementById("avgResolutionTime").textContent =
+            avgDays + " days";
+        }
+
+        // Calculate monthly average
+        const last6Months = getLast6MonthsData();
+        const monthlyAvg =
+          last6Months.length > 0
+            ? Math.round(
+                last6Months.reduce((sum, m) => sum + m.count, 0) /
+                  last6Months.length,
+              )
+            : 0;
+        document.getElementById("monthlyAvg").textContent = monthlyAvg;
+      }
+
+      function getLast6MonthsData() {
+        const months = [];
+        const now = new Date();
+
+        for (let i = 5; i >= 0; i--) {
+          const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthStr = month.toLocaleString("default", { month: "short" });
+
+          const count = allComplaints.filter((c) => {
+            const complaintDate = new Date(c.createdAt);
+            return (
+              complaintDate.getMonth() === month.getMonth() &&
+              complaintDate.getFullYear() === month.getFullYear()
+            );
+          }).length;
+
+          months.push({ month: monthStr, count });
+        }
+
+        return months;
+      }
+
+      function updateCharts() {
+        // Status Distribution Chart
+        const statusData = {
+          submitted: allComplaints.filter(
+            (c) => c.status === "Submitted" || c.status === "Under Review",
+          ).length,
+          inProgress: allComplaints.filter((c) => c.status === "In Progress")
+            .length,
+          resolved: allComplaints.filter((c) => c.status === "Resolved").length,
+          emergency: allComplaints.filter((c) => c.isEmergency).length,
+        };
+
+        if (statusChart) statusChart.destroy();
+        const statusCtx = document
+          .getElementById("statusChart")
+          .getContext("2d");
+        statusChart = new Chart(statusCtx, {
+          type: "doughnut",
+          data: {
+            labels: [
+              "Submitted/Review",
+              "In Progress",
+              "Resolved",
+              "Emergency",
+            ],
+            datasets: [
+              {
+                data: [
+                  statusData.submitted,
+                  statusData.inProgress,
+                  statusData.resolved,
+                  statusData.emergency,
+                ],
+                backgroundColor: ["#fbbf24", "#3b82f6", "#10b981", "#ef4444"],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+            },
+          },
+        });
+
+        // Monthly Performance Chart
+        const monthlyData = getLast6MonthsData();
+
+        if (monthlyChart) monthlyChart.destroy();
+        const monthlyCtx = document
+          .getElementById("monthlyChart")
+          .getContext("2d");
+        monthlyChart = new Chart(monthlyCtx, {
+          type: "line",
+          data: {
+            labels: monthlyData.map((d) => d.month),
+            datasets: [
+              {
+                label: "Complaints",
+                data: monthlyData.map((d) => d.count),
+                borderColor: "#3b82f6",
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                tension: 0.4,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 5,
+                },
+              },
+            },
+          },
+        });
+
+        // Department Distribution Chart
+        const deptData = {};
+        allComplaints.forEach((c) => {
+          deptData[c.category] = (deptData[c.category] || 0) + 1;
+        });
+
+        if (deptChart) deptChart.destroy();
+        const deptCtx = document.getElementById("deptChart").getContext("2d");
+        deptChart = new Chart(deptCtx, {
+          type: "bar",
+          data: {
+            labels: Object.keys(deptData),
+            datasets: [
+              {
+                label: "Number of Complaints",
+                data: Object.values(deptData),
+                backgroundColor: "#f59e0b",
+                borderRadius: 5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 5,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function displayComplaints(complaints) {
+        const tbody = document.getElementById("complaintsBody");
+
+        if (complaints.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="9" style="text-align: center; padding: 2rem;">No complaints found</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = complaints
+          .map((complaint) => {
+            const statusClass = complaint.isEmergency
+              ? "status-emergency"
+              : complaint.status === "Resolved"
+                ? "status-completed"
+                : complaint.status === "In Progress"
+                  ? "status-progress"
+                  : "status-pending";
+
+            // Evidence thumbnails
+            const mediaHtml =
+              complaint.media && complaint.media.length > 0
+                ? complaint.media
+                    .slice(0, 3)
+                    .map(
+                      (m) => `
+                        <img src="${m.url}" class="media-thumbnail" onclick="event.stopPropagation(); viewMedia('${m.url}')" title="Evidence photo">
+                    `,
+                    )
+                    .join("")
+                : '<span style="color: #a0aec0;">No evidence</span>';
+
+            // Completion photo
+            const completionHtml = complaint.completionPhoto
+              ? `<img src="${complaint.completionPhoto}" class="completion-photo" onclick="viewMedia('${complaint.completionPhoto}')" title="Completion photo">`
+              : complaint.status === "Resolved"
+                ? '<span style="color: #48bb78;">✓ Completed</span>'
+                : '<span style="color: #a0aec0;">Not uploaded</span>';
+
+            // Rating display
+            const ratingHtml = complaint.feedback
+              ? `<div class="rating-stars">${"★".repeat(complaint.feedback.rating)}${"☆".repeat(5 - complaint.feedback.rating)} (${complaint.feedback.rating}/5)</div>`
+              : '<span style="color: #a0aec0;">Not rated</span>';
+
+            const assignedHtml =
+              complaint.assignedTo && complaint.assignedTo.officer
+                ? `<div>
+                        <strong>${complaint.assignedTo.officer.name}</strong>
+                        <br><small>${complaint.assignedTo.department || ""}</small>
+                    </div>`
+                : '<span style="color: #f56545;">Unassigned</span>';
+
+            return `
+                    <tr>
+                        <td><span class="case-id">${complaint.complaintId}</span></td>
+                        <td>
+                            <div><strong>${complaint.title}</strong></div>
+                            <div><small>${complaint.citizen?.name || "Unknown"} • ${new Date(complaint.createdAt).toLocaleDateString()}</small></div>
+                        </td>
+                        <td>${complaint.category}</td>
+                        <td><span class="badge-status ${statusClass}">${complaint.isEmergency ? "🚨 EMERGENCY" : complaint.status}</span></td>
+                        <td>
+                            <div class="complaint-media">
+                                ${mediaHtml}
+                                ${
+                                  complaint.media && complaint.media.length > 3
+                                    ? `<span style="font-size: 0.8rem;">+${complaint.media.length - 3}</span>`
+                                    : ""
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; justify-content: center;">
+                                ${completionHtml}
+                            </div>
+                        </td>
+                        <td>${ratingHtml}</td>
+                        <td>${assignedHtml}</td>
+                        <td>
+                            <button class="assign-btn" onclick="event.stopPropagation(); openAssignModal('${complaint._id}', '${complaint.complaintId}', '${complaint.category}')">
+                                ${complaint.assignedTo ? "Reassign" : "Assign"}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+          })
+          .join("");
+      }
+
+      // Assignment Modal Functions
+      function openAssignModal(complaintId, complaintNumber, category) {
+        selectedComplaintId = complaintId;
+        document.getElementById("complaintInfo").innerHTML =
+          `<strong>Complaint:</strong> ${complaintNumber} (${category})`;
+
+        document.getElementById("deptSelect").value = category || "";
+        document.getElementById("assignModal").classList.add("active");
+        loadOfficersList();
+      }
+
+      function closeAssignModal() {
+        document.getElementById("assignModal").classList.remove("active");
+        selectedComplaintId = null;
+        selectedOfficerId = null;
+        document.getElementById("officerSearch").value = "";
+        document.getElementById("deptSelect").value = "";
+        document.getElementById("confirmAssignBtn").disabled = true;
+      }
+
+      function loadOfficersList() {
+        const officerList = document.getElementById("officerList");
+
+        if (!allOfficers || allOfficers.length === 0) {
+          officerList.innerHTML =
+            '<div style="text-align: center; padding: 20px; color: #718096;">No officers available</div>';
+          return;
+        }
+
+        const selectedDept = document.getElementById("deptSelect").value;
+        const searchTerm = document
+          .getElementById("officerSearch")
+          .value.toLowerCase();
+
+        let filteredOfficers = allOfficers;
+
+        if (selectedDept) {
+          filteredOfficers = filteredOfficers.filter(
+            (o) => o.department === selectedDept,
+          );
+        }
+
+        if (searchTerm) {
+          filteredOfficers = filteredOfficers.filter(
+            (o) =>
+              o.name.toLowerCase().includes(searchTerm) ||
+              o.email.toLowerCase().includes(searchTerm),
+          );
+        }
+
+        if (filteredOfficers.length === 0) {
+          officerList.innerHTML =
+            '<div style="text-align: center; padding: 20px; color: #718096;">No officers match your criteria</div>';
+          return;
+        }
+
+        officerList.innerHTML = filteredOfficers
+          .map(
+            (officer) => `
+                <div class="officer-item ${selectedOfficerId === officer._id ? "selected" : ""}" 
+                     onclick="selectOfficer('${officer._id}')">
+                    <div class="officer-name">${officer.name}</div>
+                    <div class="officer-dept"><i class="fas fa-building"></i> ${officer.department || "No department"}</div>
+                    <div class="officer-email"><i class="fas fa-envelope"></i> ${officer.email}</div>
+                </div>
+            `,
+          )
+          .join("");
+      }
+
+      function selectOfficer(officerId) {
+        selectedOfficerId = officerId;
+        document.querySelectorAll(".officer-item").forEach((item) => {
+          item.classList.remove("selected");
+        });
+        event.currentTarget.classList.add("selected");
+        document.getElementById("confirmAssignBtn").disabled = false;
+      }
+
+      async function confirmAssignment() {
+        if (!selectedComplaintId || !selectedOfficerId) {
+          showToast("Please select an officer", "error");
+          return;
+        }
+
+        const confirmBtn = document.getElementById("confirmAssignBtn");
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Assigning...';
+
+        try {
+          const response = await fetch("/api/admin/assign", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              complaintId: selectedComplaintId,
+              officerId: selectedOfficerId,
+              department: document.getElementById("deptSelect").value,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showToast("Complaint assigned successfully!", "success");
+            closeAssignModal();
+            fetchAllData();
+          } else {
+            showToast("Error: " + data.error, "error");
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalText;
+          }
+        } catch (error) {
+          console.error("Assignment error:", error);
+          showToast("Failed to assign complaint", "error");
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = originalText;
+        }
+      }
+
+      // PDF Report Generation
+      async function generatePDFReport() {
+        showToast("Generating PDF report...", "success");
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF("landscape");
+
+        // Add title
+        doc.setFontSize(20);
+        doc.text("Civic Grievance System - Admin Report", 20, 20);
+
+        // Add date
+        doc.setFontSize(12);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+
+        // Add statistics
+        doc.setFontSize(14);
+        doc.text("Statistics Summary", 20, 45);
+
+        doc.setFontSize(11);
+        doc.text(
+          `Total Complaints: ${document.getElementById("totalComplaints").textContent}`,
+          20,
+          55,
+        );
+        doc.text(
+          `Pending: ${document.getElementById("pendingComplaints").textContent}`,
+          20,
+          62,
+        );
+        doc.text(
+          `Completed: ${document.getElementById("completedComplaints").textContent}`,
+          20,
+          69,
+        );
+        doc.text(
+          `Emergency: ${document.getElementById("emergencyCount").textContent}`,
+          20,
+          76,
+        );
+        doc.text(
+          `Avg Resolution Time: ${document.getElementById("avgResolutionTime").textContent}`,
+          20,
+          83,
+        );
+        doc.text(
+          `Monthly Average: ${document.getElementById("monthlyAvg").textContent}`,
+          20,
+          90,
+        );
+
+        // Add charts as images
+        try {
+          const statusCanvas = document.getElementById("statusChart");
+          const monthlyCanvas = document.getElementById("monthlyChart");
+          const deptCanvas = document.getElementById("deptChart");
+
+          // Capture status chart
+          const statusImg = statusCanvas.toDataURL("image/png");
+          doc.addImage(statusImg, "PNG", 20, 100, 80, 60);
+
+          // Capture monthly chart
+          const monthlyImg = monthlyCanvas.toDataURL("image/png");
+          doc.addImage(monthlyImg, "PNG", 110, 100, 80, 60);
+
+          // Capture department chart
+          const deptImg = deptCanvas.toDataURL("image/png");
+          doc.addImage(deptImg, "PNG", 200, 100, 80, 60);
+
+          // Add new page for complaints list
+          doc.addPage();
+          doc.setFontSize(16);
+          doc.text("Recent Complaints", 20, 20);
+
+          // Add complaints table
+          const recentComplaints = allComplaints.slice(0, 15);
+          let yPos = 35;
+
+          doc.setFontSize(8);
+          recentComplaints.forEach((complaint, index) => {
+            if (yPos > 180) {
+              doc.addPage();
+              yPos = 20;
+            }
+
+            doc.text(
+              `${index + 1}. ${complaint.complaintId} - ${complaint.title}`,
+              20,
+              yPos,
+            );
+            doc.text(
+              `   Status: ${complaint.status} | Category: ${complaint.category}`,
+              20,
+              yPos + 5,
+            );
+            doc.text(
+              `   Citizen: ${complaint.citizen?.name || "Unknown"}`,
+              20,
+              yPos + 10,
+            );
+            if (complaint.feedback) {
+              doc.text(
+                `   Rating: ${complaint.feedback.rating}/5`,
+                20,
+                yPos + 15,
+              );
+              yPos += 20;
+            } else {
+              yPos += 15;
+            }
+          });
+        } catch (error) {
+          console.error("PDF generation error:", error);
+          showToast("Error generating PDF", "error");
+        }
+
+        // Save PDF
+        doc.save(
+          `civic-grievance-report-${new Date().toISOString().split("T")[0]}.pdf`,
+        );
+        showToast("PDF generated successfully!", "success");
+      }
+
+      // Filter functions
+      function filterComplaints() {
+        const deptFilter = document.getElementById("deptFilter").value;
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+
+        let filtered = allComplaints;
+
+        if (deptFilter !== "all") {
+          filtered = filtered.filter((c) => c.category === deptFilter);
+        }
+
+        if (startDate && endDate) {
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          filtered = filtered.filter((c) => {
+            const date = new Date(c.createdAt);
+            return date >= start && date <= end;
+          });
+        }
+
+        displayComplaints(filtered);
+      }
+
+      // Search function
+      function searchComplaints() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+
+        if (!searchTerm) {
+          displayComplaints(allComplaints);
+          return;
+        }
+
+        const filtered = allComplaints.filter(
+          (c) =>
+            c.title.toLowerCase().includes(searchTerm) ||
+            c.complaintId.toLowerCase().includes(searchTerm) ||
+            (c.citizen?.name || "").toLowerCase().includes(searchTerm),
+        );
+
+        displayComplaints(filtered);
+      }
+
+      // Media functions
+      function viewMedia(url) {
+        const modal = document.getElementById("mediaModal");
+        const modalContent = document.getElementById("modalContent");
+
+        modalContent.innerHTML = `<img src="${url}" alt="Media">`;
+        modal.classList.add("active");
+      }
+
+      function closeMediaModal() {
+        document.getElementById("mediaModal").classList.remove("active");
+        document.getElementById("modalContent").innerHTML = "";
+      }
+
+      // Logout function
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/index.html";
+      }
+
+      // Event listeners
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", searchComplaints);
+      document
+        .getElementById("deptSelect")
+        .addEventListener("change", loadOfficersList);
+      document
+        .getElementById("officerSearch")
+        .addEventListener("input", loadOfficersList);
+
+      // Initialize
+      fetchAllData();
+
+      // Close modals when clicking outside
+      window.onclick = function (event) {
+        const assignModal = document.getElementById("assignModal");
+        const mediaModal = document.getElementById("mediaModal");
+
+        if (event.target === assignModal) closeAssignModal();
+        if (event.target === mediaModal) closeMediaModal();
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Dashboard - Civic Grievance System</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/dashboard.css" />
+  </head>
+  <body>
+    <div class="dashboard-header">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="header-icon">
+            <i class="fas fa-home"></i>
+          </div>
+          <div>
+            <h1>Citizen Dashboard</h1>
+            <span class="header-subtitle">Manage your civic complaints</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button class="refresh-btn" onclick="loadDashboard()">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+
+          <div class="user-profile">
+            <div class="avatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <span id="userName">Loading...</span>
+          </div>
+
+          <button class="logout-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-content">
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-clock" style="color: #fbbf24"></i> Pending
+            Complaints
+          </h3>
+          <div class="stat-value" id="pendingCount">0</div>
+          <div class="stat-change">Awaiting resolution</div>
+        </div>
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-check-circle" style="color: #48bb78"></i> Resolved
+          </h3>
+          <div class="stat-value" id="resolvedCount">0</div>
+          <div class="stat-change">Successfully closed</div>
+        </div>
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-star" style="color: #fbbf24"></i> Reward Points
+          </h3>
+          <div class="stat-value" id="pointsCount">0</div>
+          <div class="stat-change">Earn more points</div>
+        </div>
+        <div class="stat-card">
+          <h3>
+            <i class="fas fa-exclamation-triangle" style="color: #f56565"></i>
+            Emergency
+          </h3>
+          <div class="stat-value" id="emergencyCount">0</div>
+          <div class="stat-change">High priority</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <a href="/report.html" class="action-card">
+          <i class="fas fa-plus-circle"></i>
+          <h3>New Complaint</h3>
+          <p>Report a new grievance</p>
+        </a>
+        <a href="/complaints.html" class="action-card">
+          <i class="fas fa-list"></i>
+          <h3>My Complaints</h3>
+          <p>View all your complaints</p>
+        </a>
+        <a href="/complaints.html" class="action-card">
+          <i class="fas fa-search"></i>
+          <h3>Track Status</h3>
+          <p>Track complaint progress</p>
+        </a>
+        <a href="#" class="action-card" onclick="showProfile()">
+          <i class="fas fa-user"></i>
+          <h3>My Profile</h3>
+          <p>View your information</p>
+        </a>
+      </div>
+
+      <!-- Recent Complaints -->
+      <div
+        style="
+          background: white;
+          border-radius: 20px;
+          padding: 25px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <h2
+          style="
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          "
+        >
+          <i class="fas fa-history" style="color: #667eea"></i> Recent
+          Complaints
+        </h2>
+        <div id="recentComplaints">
+          <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>Loading your recent complaints...</p>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 25px">
+          <a
+            href="/complaints.html"
+            class="track-status-btn"
+            style="display: inline-flex"
+          >
+            <i class="fas fa-arrow-right"></i> View All Complaints
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rating Modal -->
+    <div class="rate-modal" id="rateModal">
+      <div class="rate-modal-content">
+        <h2
+          style="
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 10px;
+          "
+        >
+          <i class="fas fa-star" style="color: #fbbf24"></i> Rate Your
+          Experience
+        </h2>
+        <p
+          id="ratingComplaintInfo"
+          style="color: #718096; margin-bottom: 20px"
+        ></p>
+
+        <div class="star-rating" id="starRating">
+          <i class="fas fa-star" data-rating="1"></i>
+          <i class="fas fa-star" data-rating="2"></i>
+          <i class="fas fa-star" data-rating="3"></i>
+          <i class="fas fa-star" data-rating="4"></i>
+          <i class="fas fa-star" data-rating="5"></i>
+        </div>
+
+        <textarea
+          id="ratingComment"
+          class="rating-comment"
+          placeholder="Share your feedback (optional)"
+        ></textarea>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel-btn" onclick="closeRatingModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-btn submit-rate-btn"
+            onclick="submitRating()"
+            id="submitRatingBtn"
+            disabled
+          >
+            Submit Rating
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Modal -->
+    <div class="media-modal" id="mediaModal">
+      <span class="close-modal" onclick="closeMediaModal()">&times;</span>
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <script>
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      if (!token) {
+        window.location.href = "/index.html";
+      }
+
+      document.getElementById("userName").textContent = user.name || "User";
+
+      let allComplaints = [];
+      let selectedRatingComplaint = null;
+      let selectedRating = 0;
+
+      // Load dashboard data
+      async function loadDashboard() {
+        showLoading();
+
+        try {
+          // Fetch complaints
+          const response = await fetch("/api/complaints", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            allComplaints = data.complaints;
+
+            // Fetch user stats
+            const statsResponse = await fetch("/api/dashboard/stats", {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const stats = await statsResponse.json();
+
+            if (statsResponse.ok) {
+              updateStats(stats);
+              document.getElementById("pointsCount").textContent =
+                stats.rewards?.points || 0;
+            }
+
+            displayRecentComplaints(allComplaints.slice(0, 5));
+          } else {
+            showToast("Error loading complaints", "error");
+            loadMockData();
+          }
+        } catch (error) {
+          console.error("Error loading dashboard:", error);
+          showToast("Network error. Using demo data.", "error");
+          loadMockData();
+        }
+      }
+
+      // Load mock data for demo
+      function loadMockData() {
+        // Mock stats
+        document.getElementById("pendingCount").textContent = "3";
+        document.getElementById("resolvedCount").textContent = "7";
+        document.getElementById("pointsCount").textContent =
+          user.rewards?.points || "150";
+        document.getElementById("emergencyCount").textContent = "1";
+
+        // Mock complaints with completion photos
+        const mockComplaints = [
+          {
+            _id: "1",
+            complaintId: "CVC-2401-0001",
+            title: "Water Supply Issue in Sector 22",
+            description:
+              "No water supply since 3 days. Multiple households affected.",
+            category: "Water Supply",
+            status: "Resolved",
+            isEmergency: false,
+            createdAt: "2024-01-15T10:30:00Z",
+            completionPhoto:
+              "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c7?w=400",
+            feedback: null,
+          },
+          {
+            _id: "2",
+            complaintId: "CVC-2401-0002",
+            title: "Street Light Not Working",
+            description: "Street lights on Main Road have been off for a week.",
+            category: "Electricity",
+            status: "In Progress",
+            isEmergency: false,
+            createdAt: "2024-01-14T15:45:00Z",
+            completionPhoto: null,
+            feedback: null,
+          },
+          {
+            _id: "3",
+            complaintId: "CVC-2401-0003",
+            title: "Broken Water Pipeline - Emergency",
+            description: "Water pipeline burst causing flooding on the street.",
+            category: "Water Supply",
+            status: "Resolved",
+            isEmergency: true,
+            createdAt: "2024-01-16T08:00:00Z",
+            completionPhoto:
+              "https://images.unsplash.com/photo-1581092921461-39b9c1b7b9c8?w=400",
+            feedback: {
+              rating: 5,
+              comment: "Excellent work! Fixed within 24 hours.",
+            },
+          },
+        ];
+
+        displayRecentComplaints(mockComplaints);
+      }
+
+      // Update statistics
+      function updateStats(stats) {
+        document.getElementById("pendingCount").textContent =
+          stats.pendingComplaints || 0;
+        document.getElementById("resolvedCount").textContent =
+          stats.resolvedComplaints || 0;
+        document.getElementById("emergencyCount").textContent =
+          stats.emergencyComplaints || 0;
+      }
+
+      // Display recent complaints
+      function displayRecentComplaints(complaints) {
+        const container = document.getElementById("recentComplaints");
+
+        if (!complaints || complaints.length === 0) {
+          container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No complaints found. Click "New Complaint" to get started!</p>
+                    </div>
+                `;
+          return;
+        }
+
+        container.innerHTML = complaints
+          .map((complaint) => {
+            const isCompleted = complaint.status === "Resolved";
+            const isEmergency =
+              complaint.isEmergency || complaint.status === "Emergency";
+
+            let statusClass = "status-submitted";
+            let statusText = complaint.status;
+
+            if (isEmergency) {
+              statusClass = "status-emergency";
+              statusText = "🚨 EMERGENCY";
+            } else if (complaint.status === "Resolved") {
+              statusClass = "status-resolved";
+              statusText = "✓ RESOLVED";
+            } else if (complaint.status === "In Progress") {
+              statusClass = "status-in-progress";
+            } else if (complaint.status === "Under Review") {
+              statusClass = "status-under-review";
+            }
+
+            // Show completion photo if available
+            const completionHtml = complaint.completionPhoto
+              ? `
+                    <div class="completion-section">
+                        <div class="completion-badge">
+                            <i class="fas fa-check-circle"></i> Work Completed Successfully!
+                        </div>
+                        <img src="${complaint.completionPhoto}" 
+                             class="completion-photo" 
+                             onclick="event.stopPropagation(); viewMedia('${complaint.completionPhoto}')"
+                             title="Click to enlarge">
+                        <p style="color: #718096; font-size: 13px; margin-top: 5px;">
+                            <i class="fas fa-calendar"></i> Completed on ${new Date(complaint.resolvedAt || complaint.updatedAt || complaint.createdAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                `
+              : "";
+
+            // Show rating if feedback exists, otherwise show rate button for completed complaints
+            const ratingHtml = complaint.feedback
+              ? `
+                    <div style="margin-top: 15px;">
+                        <div class="rating-stars">
+                            ${"★".repeat(complaint.feedback.rating)}${"☆".repeat(5 - complaint.feedback.rating)}
+                        </div>
+                        ${complaint.feedback.comment ? `<p style="color: #4a5568; font-size: 14px; margin-top: 5px;">"${complaint.feedback.comment}"</p>` : ""}
+                    </div>
+                `
+              : isCompleted
+                ? `
+                    <button class="rate-btn" onclick="event.stopPropagation(); openRatingModal('${complaint._id}', '${complaint.complaintId}')">
+                        <i class="fas fa-star"></i> Rate This Resolution
+                    </button>
+                `
+                : "";
+
+            return `
+                    <div class="complaint-card ${isCompleted ? "completed" : ""} ${isEmergency ? "emergency" : ""}" 
+                         onclick="viewComplaintDetails('${complaint._id}')">
+                        <div class="complaint-header">
+                            <span class="complaint-id">${complaint.complaintId}</span>
+                            <span class="badge-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <h3 class="complaint-title">${complaint.title}</h3>
+                        <p style="color: #4a5568; margin-bottom: 10px; font-size: 14px;">${complaint.description.substring(0, 120)}...</p>
+                        <div class="complaint-meta">
+                            <span><i class="fas fa-tag"></i> ${complaint.category}</span>
+                            <span><i class="fas fa-calendar"></i> ${new Date(complaint.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        ${completionHtml}
+                        ${ratingHtml}
+                        <div style="margin-top: 15px; text-align: right;">
+                            <span style="color: #667eea; font-size: 13px; font-weight: 500;">
+                                Click to view details <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+      }
+
+      // View complaint details
+      function viewComplaintDetails(complaintId) {
+        window.location.href = `/complaints.html?id=${complaintId}`;
+      }
+
+      // Rating Functions
+      function openRatingModal(complaintId, complaintNumber) {
+        selectedRatingComplaint = complaintId;
+        document.getElementById("ratingComplaintInfo").innerHTML =
+          `<strong>Complaint:</strong> ${complaintNumber}`;
+        document.getElementById("rateModal").classList.add("active");
+
+        // Setup star rating
+        const stars = document.querySelectorAll(".star-rating i");
+        stars.forEach((star) => {
+          star.addEventListener("click", function () {
+            const rating = parseInt(this.dataset.rating);
+            selectedRating = rating;
+
+            stars.forEach((s, index) => {
+              if (index < rating) {
+                s.classList.add("active");
+              } else {
+                s.classList.remove("active");
+              }
+            });
+
+            document.getElementById("submitRatingBtn").disabled = false;
+          });
+        });
+      }
+
+      function closeRatingModal() {
+        document.getElementById("rateModal").classList.remove("active");
+        selectedRatingComplaint = null;
+        selectedRating = 0;
+        document.getElementById("ratingComment").value = "";
+        document.getElementById("submitRatingBtn").disabled = true;
+
+        // Reset stars
+        document.querySelectorAll(".star-rating i").forEach((star) => {
+          star.classList.remove("active");
+        });
+      }
+
+      async function submitRating() {
+        if (!selectedRatingComplaint || selectedRating === 0) return;
+
+        const submitBtn = document.getElementById("submitRatingBtn");
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+        const comment = document.getElementById("ratingComment").value;
+
+        try {
+          const response = await fetch(
+            `/api/complaints/${selectedRatingComplaint}/feedback`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                rating: selectedRating,
+                comment: comment,
+              }),
+            },
+          );
+
+          if (response.ok) {
+            showToast(
+              "Thank you for your feedback! You earned 2 points!",
+              "success",
+            );
+            closeRatingModal();
+            loadDashboard(); // Refresh to show rating
+          } else {
+            const data = await response.json();
+            showToast("Error: " + data.error, "error");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        } catch (error) {
+          console.error("Rating error:", error);
+          showToast("Failed to submit rating", "error");
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      }
+
+      // Media viewing
+      function viewMedia(url) {
+        const modal = document.getElementById("mediaModal");
+        const modalContent = document.getElementById("modalContent");
+
+        modalContent.innerHTML = `<img src="${url}" alt="Completion Photo">`;
+        modal.classList.add("active");
+      }
+
+      function closeMediaModal() {
+        document.getElementById("mediaModal").classList.remove("active");
+        document.getElementById("modalContent").innerHTML = "";
+      }
+
+      // Show profile
+
+      // Show loading state
+      function showLoading() {
+        document.getElementById("recentComplaints").innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading your complaints...</p>
+                </div>
+            `;
+      }
+
+      <!-- Replace any alert calls -->
+
+      // ... existing code ...
+
+      // Show profile function
+      function showProfile() {
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        // Replace alert with modal or toast
+        showToast(`👤 Profile: ${userData.name}`, "success");
+        // You could also create a modal instead of alert
+      }
+
+      // Add toast function if not present
+      function showToast(message, type = "success") {
+        // ... toast implementation as above ...
+      }
+
+      // Logout function
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/index.html";
+      }
+
+      // Initialize
+      loadDashboard();
+
+      // Close modals when clicking outside
+      window.onclick = function (event) {
+        const rateModal = document.getElementById("rateModal");
+        const mediaModal = document.getElementById("mediaModal");
+
+        if (event.target === rateModal) {
+          closeRatingModal();
+        }
+        if (event.target === mediaModal) {
+          closeMediaModal();
+        }
+      };
+    </script>
+  </body>
+</html>
