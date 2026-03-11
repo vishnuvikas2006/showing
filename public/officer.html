@@ -13,6 +13,70 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./css/officer.css" />
+    <style>
+      /* ---- Work Report Modal ---- */
+      .work-report-modal {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.55); z-index: 1000;
+        align-items: center; justify-content: center;
+      }
+      .work-report-modal.active { display: flex; }
+      .work-report-content {
+        background: white; border-radius: 20px; padding: 2rem;
+        width: 90%; max-width: 580px; max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        animation: slideUp 0.3s ease;
+      }
+      @keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+      .work-report-content h3 { font-size: 1.3rem; color: #2d3748; margin-bottom: 0.5rem; }
+      .wr-form-group { margin-bottom: 1rem; }
+      .wr-form-group label { display: block; font-weight: 600; color: #4a5568; margin-bottom: 6px; font-size: 0.9rem; }
+      .wr-form-group input, .wr-form-group textarea, .wr-form-group select {
+        width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0;
+        border-radius: 10px; font-size: 0.95rem; color: #2d3748;
+        box-sizing: border-box; outline: none; transition: border 0.2s;
+      }
+      .wr-form-group input:focus, .wr-form-group textarea:focus { border-color: #667eea; }
+      .wr-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .bill-upload-zone {
+        border: 2px dashed #cbd5e0; border-radius: 12px;
+        padding: 1.2rem; text-align: center; cursor: pointer;
+        transition: all 0.2s; background: #f8faff;
+      }
+      .bill-upload-zone:hover { border-color: #667eea; background: #eef2ff; }
+      .bill-preview { margin-top: 10px; }
+      .bill-preview img { max-width: 150px; max-height: 120px; border-radius: 8px; }
+      .wr-actions { display: flex; gap: 10px; margin-top: 1.5rem; }
+      .wr-cancel { flex:1; padding: 10px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; color: #4a5568; font-weight: 600; cursor: pointer; }
+      .wr-submit { flex:1; padding: 10px; border-radius: 10px; border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-weight: 600; cursor: pointer; }
+      .wr-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      /* ---- My Reports Section ---- */
+      .my-reports-section {
+        background: white; border-radius: 20px; padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-top: 2rem;
+      }
+      .report-item {
+        border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1rem;
+        margin-bottom: 1rem; transition: box-shadow 0.2s;
+      }
+      .report-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .report-status-badge {
+        display: inline-block; padding: 3px 12px; border-radius: 20px;
+        font-size: 0.8rem; font-weight: 600;
+      }
+      .rs-pending { background: #fef3c7; color: #92400e; }
+      .rs-approved { background: #d1fae5; color: #065f46; }
+      .rs-rejected { background: #fee2e2; color: #991b1b; }
+      .rs-correction { background: #e0e7ff; color: #3730a3; }
+      .submit-report-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white; border: none; padding: 8px 16px;
+        border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+        font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+      }
+      .submit-report-btn:hover { opacity: 0.9; }
+    </style>
   </head>
   <body>
     <div class="dashboard-header">
@@ -100,6 +164,53 @@
       </div>
     </div>
 
+    <!-- Work Report Modal -->
+    <div class="work-report-modal" id="workReportModal">
+      <div class="work-report-content">
+        <h3><i class="fas fa-file-invoice-dollar" style="color:#667eea"></i> Submit Work Completion Report</h3>
+        <p id="wrComplaintInfo" style="color:#718096; margin:8px 0 16px"></p>
+
+        <div class="wr-form-group">
+          <label>Work Description *</label>
+          <textarea id="wrWorkDesc" rows="3" placeholder="Describe the work done in detail..."></textarea>
+        </div>
+
+        <div class="wr-form-group">
+          <label>Materials Used</label>
+          <textarea id="wrMaterials" rows="2" placeholder="List materials and quantities used..."></textarea>
+        </div>
+
+        <div class="wr-form-row">
+          <div class="wr-form-group">
+            <label>Work Completion Date *</label>
+            <input type="date" id="wrCompletionDate" />
+          </div>
+          <div class="wr-form-group">
+            <label>Bill Amount (₹) *</label>
+            <input type="number" id="wrBillAmount" placeholder="e.g. 5000" min="0" />
+          </div>
+        </div>
+
+        <div class="wr-form-group">
+          <label>Upload Bill (Image or PDF)</label>
+          <div class="bill-upload-zone" id="billUploadZone" onclick="document.getElementById('billFileInput').click()">
+            <i class="fas fa-file-invoice" style="font-size:2rem; color:#667eea; display:block; margin-bottom:6px"></i>
+            <p style="margin:0; color:#718096; font-size:0.9rem">Click to upload bill document</p>
+            <p style="margin:4px 0 0; color:#a0aec0; font-size:0.8rem">Images or PDF (Max 10MB)</p>
+            <input type="file" id="billFileInput" accept="image/*,.pdf" style="display:none" />
+          </div>
+          <div id="billPreview" class="bill-preview"></div>
+        </div>
+
+        <div class="wr-actions">
+          <button class="wr-cancel" onclick="closeWorkReportModal()">Cancel</button>
+          <button class="wr-submit" id="submitReportBtn" onclick="submitWorkReport()">
+            <i class="fas fa-paper-plane"></i> Submit Report
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Status Update Modal -->
     <div class="status-modal" id="statusModal">
       <div class="status-modal-content">
@@ -124,8 +235,10 @@
             >
               <option value="Under Review">Under Review</option>
               <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
             </select>
+            <p style="font-size:0.8rem; color:#718096; margin-top:6px;">
+              <i class="fas fa-info-circle"></i> To mark as <strong>Resolved</strong>, submit a Work Completion Report — admin will approve and resolve it.
+            </p>
           </div>
         </div>
 
@@ -211,6 +324,18 @@
       <div class="modal-content" id="modalContent"></div>
     </div>
 
+    <!-- My Reports Section -->
+    <div class="my-reports-section dashboard-content" style="margin: 0 2rem 2rem;">
+      <h2 style="font-size:1.3rem; color:#2d3748; margin-bottom:1.2rem;">
+        <i class="fas fa-file-invoice-dollar" style="color:#667eea"></i> My Work Reports
+      </h2>
+      <div id="myReportsContainer">
+        <div style="color:#718096; text-align:center; padding:1.5rem;">
+          <i class="fas fa-spinner fa-spin"></i> Loading reports...
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -228,6 +353,8 @@
       let selectedComplaintForPhoto = null;
       let selectedComplaintForStatus = null;
       let completionFile = null;
+      let selectedComplaintForReport = null;
+      let billFile = null;
 
       // Toast notification function
       function showToast(message, type = "success") {
@@ -611,12 +738,17 @@
                             </div>
                             
                             <div class="detail-section">
-                                <div class="detail-label">Update Status</div>
-                                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-                                    <button class="update-btn" onclick="event.stopPropagation(); openStatusModal('${complaint._id}', '${complaint.complaintId}', '${complaint.status}')">
-                                        <i class="fas fa-edit"></i> Update Status
-                                    </button>
-                                </div>
+                                <div class="detail-label">Status</div>
+                                ${complaint.status === 'Work Submitted' ? `
+                                <div style="padding:10px; background:#e0e7ff; border-radius:8px; color:#3730a3; font-size:0.85rem;">
+                                    <i class="fas fa-clock"></i> Work report submitted — awaiting admin approval
+                                </div>` : complaint.status === 'Resolved' ? `
+                                <div style="padding:10px; background:#d1fae5; border-radius:8px; color:#065f46; font-size:0.85rem;">
+                                    <i class="fas fa-check-circle"></i> Complaint resolved and approved by admin
+                                </div>` : `
+                                <div style="padding:10px; background:#f8faff; border-radius:8px; color:#4a5568; font-size:0.85rem;">
+                                    <i class="fas fa-info-circle"></i> Current status: <strong>${complaint.status}</strong> — use the action bar below to update or submit report
+                                </div>`}
                             </div>
                             
                             <div class="detail-section">
@@ -625,13 +757,34 @@
                             </div>
                         </div>
                         
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
-                            <span style="color: #718096; font-size: 0.9rem;">
-                                <i class="fas fa-user"></i> ${complaint.citizen?.name || "Unknown"}
-                            </span>
-                            <span style="color: #718096; font-size: 0.9rem;">
-                                <i class="fas fa-clock"></i> Click to view details
-                            </span>
+                        <!-- Prominent Action Bar — visible on card without expanding -->
+                        <div style="margin-top:14px; padding:12px; background:#f8faff; border-radius:12px; border:1px solid #e8eeff;">
+                          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                              <i class="fas fa-user" style="color:#718096;font-size:0.85rem;"></i>
+                              <span style="color:#4a5568; font-size:0.9rem; font-weight:500;">${complaint.citizen?.name || "Unknown"}</span>
+                              <!-- Status chip -->
+                              ${complaint.status === 'Resolved' ? `<span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;"><i class="fas fa-check-circle"></i> Resolved</span>` : ''}
+                              ${complaint.status === 'Work Submitted' ? `<span style="background:#e0e7ff;color:#3730a3;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;"><i class="fas fa-clock"></i> Awaiting Admin Approval</span>` : ''}
+                              ${complaint.status === 'In Progress' ? `<span style="background:#fff7ed;color:#c2410c;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;"><i class="fas fa-tools"></i> In Progress</span>` : ''}
+                              ${complaint.status === 'Assigned' ? `<span style="background:#fef9c3;color:#854d0e;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;"><i class="fas fa-user-check"></i> Assigned</span>` : ''}
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                              ${(complaint.status === 'Assigned' || complaint.status === 'In Progress' || complaint.status === 'Work Submitted') ? `
+                              <button class="submit-report-btn" onclick="event.stopPropagation(); openWorkReportModal('${complaint._id}', '${complaint.complaintId}')">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                ${complaint.status === 'Work Submitted' ? 'Resubmit Report' : 'Submit Work Report'}
+                              </button>` : ''}
+                              <button onclick="event.stopPropagation(); openStatusModal('${complaint._id}', '${complaint.complaintId}', '${complaint.status}')"
+                                style="background:#e2e8f0;color:#4a5568;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;">
+                                <i class="fas fa-edit"></i> Update Status
+                              </button>
+                            </div>
+                          </div>
+                          ${complaint.status === 'Work Submitted' ? `
+                          <div style="margin-top:8px;font-size:0.8rem;color:#6366f1;"><i class="fas fa-info-circle"></i> Work report submitted — waiting for admin to approve before complaint is marked Resolved</div>` : ''}
+                          ${complaint.status === 'Assigned' || complaint.status === 'In Progress' ? `
+                          <div style="margin-top:8px;font-size:0.8rem;color:#718096;"><i class="fas fa-arrow-right"></i> Complete the work, then click <strong>Submit Work Report</strong> with bill details</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -897,24 +1050,155 @@
         window.location.href = "/index.html";
       }
 
+      // ---- Work Report Modal ----
+      function openWorkReportModal(complaintId, complaintNumber) {
+        selectedComplaintForReport = complaintId;
+        document.getElementById("wrComplaintInfo").innerHTML =
+          `<strong>Complaint:</strong> ${complaintNumber}`;
+        // Set today as default date
+        document.getElementById("wrCompletionDate").value = new Date().toISOString().split("T")[0];
+        document.getElementById("wrWorkDesc").value = "";
+        document.getElementById("wrMaterials").value = "";
+        document.getElementById("wrBillAmount").value = "";
+        document.getElementById("billPreview").innerHTML = "";
+        billFile = null;
+        document.getElementById("workReportModal").classList.add("active");
+      }
+
+      function closeWorkReportModal() {
+        document.getElementById("workReportModal").classList.remove("active");
+        selectedComplaintForReport = null;
+        billFile = null;
+        document.getElementById("billPreview").innerHTML = "";
+      }
+
+      // Bill file input handling
+      document.getElementById("billFileInput").addEventListener("change", function() {
+        const file = this.files[0];
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+          showToast("File size must be less than 10MB", "error");
+          return;
+        }
+        billFile = file;
+        const preview = document.getElementById("billPreview");
+        if (file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            preview.innerHTML = `<img src="${e.target.result}" style="max-width:150px; border-radius:8px; margin-top:8px;">
+              <p style="color:#48bb78; font-size:0.85rem; margin-top:4px;"><i class="fas fa-check-circle"></i> ${file.name}</p>`;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          preview.innerHTML = `<p style="color:#667eea; font-size:0.85rem; margin-top:8px;"><i class="fas fa-file-pdf"></i> ${file.name}</p>`;
+        }
+      });
+
+      async function submitWorkReport() {
+        if (!selectedComplaintForReport) return;
+
+        const workDesc = document.getElementById("wrWorkDesc").value.trim();
+        const completionDate = document.getElementById("wrCompletionDate").value;
+        const billAmount = document.getElementById("wrBillAmount").value;
+
+        if (!workDesc || !completionDate || !billAmount) {
+          showToast("Please fill in all required fields", "error");
+          return;
+        }
+
+        const btn = document.getElementById("submitReportBtn");
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+        const formData = new FormData();
+        formData.append("complaintId", selectedComplaintForReport);
+        formData.append("workDescription", workDesc);
+        formData.append("materialsUsed", document.getElementById("wrMaterials").value);
+        formData.append("completionDate", completionDate);
+        formData.append("billAmount", billAmount);
+        if (billFile) formData.append("billFile", billFile);
+
+        try {
+          const response = await fetch("/api/reports", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData
+          });
+
+          const data = await response.json();
+          if (response.ok) {
+            showToast("Work report submitted! Awaiting admin approval.", "success");
+            closeWorkReportModal();
+            fetchComplaints();
+            loadMyReports();
+          } else {
+            showToast("Error: " + data.error, "error");
+            btn.disabled = false;
+            btn.innerHTML = orig;
+          }
+        } catch (err) {
+          console.error("Report submit error:", err);
+          showToast("Failed to submit report", "error");
+          btn.disabled = false;
+          btn.innerHTML = orig;
+        }
+      }
+
+      // ---- My Reports Section ----
+      async function loadMyReports() {
+        const container = document.getElementById("myReportsContainer");
+        try {
+          const res = await fetch("/api/reports", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const reports = await res.json();
+
+          if (!res.ok || reports.length === 0) {
+            container.innerHTML = '<p style="color:#718096; text-align:center; padding:1rem;">No work reports submitted yet.</p>';
+            return;
+          }
+
+          container.innerHTML = reports.map(r => {
+            const statusClass = { Pending: "rs-pending", Approved: "rs-approved", Rejected: "rs-rejected", "Correction Required": "rs-correction" }[r.adminStatus] || "rs-pending";
+            return `
+              <div class="report-item">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                  <div>
+                    <strong style="color:#2d3748;">${r.reportId}</strong>
+                    <span style="color:#718096; font-size:0.85rem; margin-left:10px;">${r.complaint?.complaintId || ""} — ${r.complaint?.title || ""}</span>
+                  </div>
+                  <span class="report-status-badge ${statusClass}">${r.adminStatus}</span>
+                </div>
+                <div style="margin-top:8px; color:#4a5568; font-size:0.9rem;">${r.workDescription.substring(0,120)}${r.workDescription.length > 120 ? "..." : ""}</div>
+                <div style="margin-top:6px; display:flex; gap:16px; font-size:0.85rem; color:#718096; flex-wrap:wrap;">
+                  <span><i class="fas fa-calendar"></i> ${new Date(r.completionDate).toLocaleDateString()}</span>
+                  <span><i class="fas fa-rupee-sign"></i> ₹${r.billAmount.toLocaleString()}</span>
+                  ${r.billFile ? `<span><a href="${r.billFile}" target="_blank" style="color:#667eea;"><i class="fas fa-file"></i> View Bill</a></span>` : ""}
+                  ${r.adminRemarks ? `<span style="color:#e53e3e;"><i class="fas fa-comment"></i> ${r.adminRemarks}</span>` : ""}
+                </div>
+              </div>`;
+          }).join("");
+        } catch (err) {
+          container.innerHTML = '<p style="color:#e53e3e; text-align:center;">Failed to load reports.</p>';
+        }
+      }
+
       // Load complaints
       fetchComplaints();
+      loadMyReports();
 
       // Close modals when clicking outside
       window.onclick = function (event) {
         const mediaModal = document.getElementById("mediaModal");
         const completionModal = document.getElementById("completionPhotoModal");
         const statusModal = document.getElementById("statusModal");
+        const workReportModal = document.getElementById("workReportModal");
 
-        if (event.target === mediaModal) {
-          closeMediaModal();
-        }
-        if (event.target === completionModal) {
-          closeCompletionModal();
-        }
-        if (event.target === statusModal) {
-          closeStatusModal();
-        }
+        if (event.target === mediaModal) closeMediaModal();
+        if (event.target === completionModal) closeCompletionModal();
+        if (event.target === statusModal) closeStatusModal();
+        if (event.target === workReportModal) closeWorkReportModal();
       };
     </script>
   </body>
