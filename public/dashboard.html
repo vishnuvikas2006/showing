@@ -1,4 +1,4 @@
-<!doctype html>
+ <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -13,6 +13,46 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/css/dashboard.css" />
+    <style>
+      /* ---- Rewards Section ---- */
+      .rewards-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        color: white;
+      }
+      .rewards-section h2 { font-size: 1.4rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 10px; }
+      .rewards-top { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+      .points-circle {
+        width: 100px; height: 100px; border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        border: 3px solid rgba(255,255,255,0.5);
+      }
+      .points-circle .pts-num { font-size: 2rem; font-weight: 700; }
+      .points-circle .pts-label { font-size: 0.7rem; opacity: 0.85; }
+      .rewards-info { flex: 1; min-width: 200px; }
+      .rewards-info .level-tag {
+        display: inline-block; background: rgba(255,255,255,0.25);
+        padding: 4px 14px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 10px;
+      }
+      .progress-bar-wrap { background: rgba(255,255,255,0.2); border-radius: 10px; height: 10px; margin-top: 8px; }
+      .progress-bar-fill { height: 10px; border-radius: 10px; background: #fbbf24; transition: width 0.5s; }
+      .progress-text { font-size: 0.8rem; opacity: 0.85; margin-top: 5px; }
+      .badges-row { display: flex; flex-wrap: wrap; gap: 12px; }
+      .badge-card {
+        background: rgba(255,255,255,0.2); border-radius: 14px;
+        padding: 12px 18px; display: flex; align-items: center; gap: 10px;
+        border: 1px solid rgba(255,255,255,0.35);
+        animation: fadeIn 0.4s ease;
+      }
+      .badge-icon { font-size: 1.8rem; }
+      .badge-name { font-weight: 600; font-size: 0.95rem; }
+      .badge-desc { font-size: 0.75rem; opacity: 0.8; }
+      .no-badge { opacity: 0.7; font-size: 0.9rem; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
   </head>
   <body>
     <div class="dashboard-header">
@@ -33,7 +73,7 @@
             Refresh
           </button>
 
-          <div class="user-profile">
+          <div class="user-profile" onclick="showProfileModal()">
             <div class="avatar">
               <i class="fas fa-user"></i>
             </div>
@@ -68,18 +108,36 @@
         </div>
         <div class="stat-card">
           <h3>
-            <i class="fas fa-star" style="color: #fbbf24"></i> Reward Points
-          </h3>
-          <div class="stat-value" id="pointsCount">0</div>
-          <div class="stat-change">Earn more points</div>
-        </div>
-        <div class="stat-card">
-          <h3>
             <i class="fas fa-exclamation-triangle" style="color: #f56565"></i>
             Emergency
           </h3>
           <div class="stat-value" id="emergencyCount">0</div>
           <div class="stat-change">High priority</div>
+        </div>
+      </div>
+
+      <!-- Rewards & Badges -->
+      <div class="rewards-section" id="rewardsSection" style="display:none">
+        <h2><i class="fas fa-trophy"></i> Your Rewards</h2>
+        <div class="rewards-top">
+          <div class="points-circle">
+            <span class="pts-num" id="rewardPoints">0</span>
+            <span class="pts-label">POINTS</span>
+          </div>
+          <div class="rewards-info">
+            <div class="level-tag" id="rewardLevel">Bronze</div>
+            <div style="font-size:0.95rem; margin-bottom:6px;" id="nextBadgeText">Earn 50 pts for Community Helper badge</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="rewardProgressBar" style="width:0%"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 50 pts</div>
+          </div>
+        </div>
+        <div style="margin-bottom:10px; font-weight:600; font-size:0.95rem; opacity:0.9;">
+          <i class="fas fa-medal"></i> Earned Badges
+        </div>
+        <div class="badges-row" id="badgesRow">
+          <span class="no-badge">No badges yet. Keep reporting issues to earn badges!</span>
         </div>
       </div>
 
@@ -100,7 +158,7 @@
           <h3>Track Status</h3>
           <p>Track complaint progress</p>
         </a>
-        <a href="#" class="action-card" onclick="showProfile()">
+        <a href="#" class="action-card" onclick="showProfileModal()">
           <i class="fas fa-user"></i>
           <h3>My Profile</h3>
           <p>View your information</p>
@@ -108,25 +166,8 @@
       </div>
 
       <!-- Recent Complaints -->
-      <div
-        style="
-          background: white;
-          border-radius: 20px;
-          padding: 25px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        "
-      >
-        <h2
-          style="
-            font-size: 20px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-          "
-        >
+      <div class="recent-complaints-section">
+        <h2 class="section-title">
           <i class="fas fa-history" style="color: #667eea"></i> Recent
           Complaints
         </h2>
@@ -148,17 +189,52 @@
       </div>
     </div>
 
+    <!-- Profile Modal -->
+    <div class="profile-modal" id="profileModal">
+      <div class="profile-modal-content">
+        <div class="profile-header">
+          <h2><i class="fas fa-user-circle"></i> My Profile</h2>
+          <button class="close-profile-btn" onclick="closeProfileModal()">&times;</button>
+        </div>
+        
+        <div class="profile-body">
+          <div class="profile-avatar-large">
+            <i class="fas fa-user"></i>
+          </div>
+          
+          <div class="profile-info">
+            <div class="profile-field">
+              <label><i class="fas fa-user"></i> Full Name</label>
+              <p id="profileName">Loading...</p>
+            </div>
+            
+            <div class="profile-field">
+              <label><i class="fas fa-envelope"></i> Email Address</label>
+              <p id="profileEmail">Loading...</p>
+            </div>
+            
+            <div class="profile-field">
+              <label><i class="fas fa-phone"></i> Phone Number</label>
+              <p id="profilePhone">Loading...</p>
+            </div>
+            
+            <div class="profile-field">
+              <label><i class="fas fa-calendar"></i> Member Since</label>
+              <p id="profileJoined">Loading...</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="profile-footer">
+          <button class="profile-btn close-btn" onclick="closeProfileModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Rating Modal -->
     <div class="rate-modal" id="rateModal">
       <div class="rate-modal-content">
-        <h2
-          style="
-            font-size: 24px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 10px;
-          "
-        >
+        <h2 class="modal-title">
           <i class="fas fa-star" style="color: #fbbf24"></i> Rate Your
           Experience
         </h2>
@@ -203,6 +279,9 @@
       <div class="modal-content" id="modalContent"></div>
     </div>
 
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <script>
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -216,6 +295,29 @@
       let allComplaints = [];
       let selectedRatingComplaint = null;
       let selectedRating = 0;
+
+      // Toast notification function
+      function showToast(message, type = "success") {
+        const container = document.getElementById("toastContainer");
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        const icon = document.createElement("i");
+        icon.className = `fas ${type === "success" ? "fa-check-circle" : "fa-exclamation-circle"}`;
+
+        const span = document.createElement("span");
+        span.textContent = message;
+
+        toast.appendChild(icon);
+        toast.appendChild(span);
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.animation = "slideOut 0.3s ease";
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
 
       // Load dashboard data
       async function loadDashboard() {
@@ -244,8 +346,6 @@
 
             if (statsResponse.ok) {
               updateStats(stats);
-              document.getElementById("pointsCount").textContent =
-                stats.rewards?.points || 0;
             }
 
             displayRecentComplaints(allComplaints.slice(0, 5));
@@ -265,8 +365,6 @@
         // Mock stats
         document.getElementById("pendingCount").textContent = "3";
         document.getElementById("resolvedCount").textContent = "7";
-        document.getElementById("pointsCount").textContent =
-          user.rewards?.points || "150";
         document.getElementById("emergencyCount").textContent = "1";
 
         // Mock complaints with completion photos
@@ -326,6 +424,59 @@
           stats.resolvedComplaints || 0;
         document.getElementById("emergencyCount").textContent =
           stats.emergencyComplaints || 0;
+
+        if (stats.rewards) {
+          updateRewardsUI(stats.rewards);
+        }
+      }
+
+      // Render rewards section
+      function updateRewardsUI(rewards) {
+        const section = document.getElementById("rewardsSection");
+        section.style.display = "block";
+
+        const points = rewards.points || 0;
+        document.getElementById("rewardPoints").textContent = points;
+        document.getElementById("rewardLevel").textContent = rewards.level || "Bronze";
+
+        // Progress bar logic
+        let nextThreshold = 50;
+        let prevThreshold = 0;
+        let nextBadgeLabel = "Community Helper";
+        if (points >= 100) {
+          nextThreshold = 200; prevThreshold = 100; nextBadgeLabel = "Silver Level";
+        } else if (points >= 50) {
+          nextThreshold = 100; prevThreshold = 50; nextBadgeLabel = "Responsible Citizen";
+        } else {
+          nextThreshold = 50; prevThreshold = 0; nextBadgeLabel = "Community Helper";
+        }
+
+        const pct = Math.min(100, Math.round(((points - prevThreshold) / (nextThreshold - prevThreshold)) * 100));
+        document.getElementById("rewardProgressBar").style.width = pct + "%";
+
+        if (points >= 100) {
+          document.getElementById("nextBadgeText").textContent = `🎉 All badges earned! Level: ${rewards.level}`;
+          document.getElementById("progressText").textContent = `${points} pts`;
+        } else {
+          document.getElementById("nextBadgeText").textContent = `${nextThreshold - points} pts to earn ${nextBadgeLabel} badge`;
+          document.getElementById("progressText").textContent = `${points} / ${nextThreshold} pts`;
+        }
+
+        // Render badges
+        const badgesRow = document.getElementById("badgesRow");
+        if (rewards.badges && rewards.badges.length > 0) {
+          badgesRow.innerHTML = rewards.badges.map(b => `
+            <div class="badge-card">
+              <span class="badge-icon">${b.icon || "🏅"}</span>
+              <div>
+                <div class="badge-name">${b.name}</div>
+                <div class="badge-desc">${b.description || ""}</div>
+              </div>
+            </div>
+          `).join("");
+        } else {
+          badgesRow.innerHTML = '<span class="no-badge">No badges yet. Keep reporting issues to earn badges!</span>';
+        }
       }
 
       // Display recent complaints
@@ -430,12 +581,37 @@
         window.location.href = `/complaints.html?id=${complaintId}`;
       }
 
+      // Profile Modal Functions
+      function showProfileModal() {
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        
+        document.getElementById("profileName").textContent = userData.name || "Not provided";
+        document.getElementById("profileEmail").textContent = userData.email || "Not provided";
+        document.getElementById("profilePhone").textContent = userData.phone || "Not provided";
+        
+        // Format join date
+        const joinDate = userData.createdAt ? new Date(userData.createdAt).toLocaleDateString() : "N/A";
+        document.getElementById("profileJoined").textContent = joinDate;
+        
+        document.getElementById("profileModal").classList.add("active");
+      }
+
+      function closeProfileModal() {
+        document.getElementById("profileModal").classList.remove("active");
+      }
+
       // Rating Functions
       function openRatingModal(complaintId, complaintNumber) {
         selectedRatingComplaint = complaintId;
         document.getElementById("ratingComplaintInfo").innerHTML =
           `<strong>Complaint:</strong> ${complaintNumber}`;
         document.getElementById("rateModal").classList.add("active");
+
+        // Reset stars
+        selectedRating = 0;
+        document.querySelectorAll(".star-rating i").forEach((star) => {
+          star.classList.remove("active");
+        });
 
         // Setup star rating
         const stars = document.querySelectorAll(".star-rating i");
@@ -498,10 +674,7 @@
           );
 
           if (response.ok) {
-            showToast(
-              "Thank you for your feedback! You earned 2 points!",
-              "success",
-            );
+            showToast("Thank you for your feedback!", "success");
             closeRatingModal();
             loadDashboard(); // Refresh to show rating
           } else {
@@ -532,8 +705,6 @@
         document.getElementById("modalContent").innerHTML = "";
       }
 
-      // Show profile
-
       // Show loading state
       function showLoading() {
         document.getElementById("recentComplaints").innerHTML = `
@@ -542,23 +713,6 @@
                     <p>Loading your complaints...</p>
                 </div>
             `;
-      }
-
-      <!-- Replace any alert calls -->
-
-      // ... existing code ...
-
-      // Show profile function
-      function showProfile() {
-        const userData = JSON.parse(localStorage.getItem("user") || "{}");
-        // Replace alert with modal or toast
-        showToast(`👤 Profile: ${userData.name}`, "success");
-        // You could also create a modal instead of alert
-      }
-
-      // Add toast function if not present
-      function showToast(message, type = "success") {
-        // ... toast implementation as above ...
       }
 
       // Logout function
@@ -575,12 +729,16 @@
       window.onclick = function (event) {
         const rateModal = document.getElementById("rateModal");
         const mediaModal = document.getElementById("mediaModal");
+        const profileModal = document.getElementById("profileModal");
 
         if (event.target === rateModal) {
           closeRatingModal();
         }
         if (event.target === mediaModal) {
           closeMediaModal();
+        }
+        if (event.target === profileModal) {
+          closeProfileModal();
         }
       };
     </script>
