@@ -549,3 +549,243 @@ td {
     padding: 20px;
   }
 }
+/* Assign Button Styles */
+.assign-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  min-width: 70px;
+}
+
+.assign-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+}
+
+.assign-btn:active {
+  transform: translateY(0);
+}
+
+.assign-btn i {
+  font-size: 12px;
+}
+
+/* Assignment Modal */
+.assign-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.assign-modal.active {
+  display: flex;
+}
+
+.assign-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 450px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.assign-modal-content h3 {
+  font-size: 20px;
+  color: #1e293b;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assign-modal-content h3 i {
+  color: #2563eb;
+}
+
+/* Form Elements */
+#deptSelect,
+#officerSearch {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  margin: 5px 0 15px;
+}
+
+#deptSelect:focus,
+#officerSearch:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* Officer List */
+.officer-list {
+  max-height: 250px;
+  overflow-y: auto;
+  margin: 15px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.officer-item {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.officer-item:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+
+.officer-item.selected {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+
+.officer-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+.officer-dept {
+  font-size: 12px;
+  color: #2563eb;
+  margin-bottom: 2px;
+}
+
+.officer-email {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Modal Buttons */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cancel-btn {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.cancel-btn:hover {
+  background: #cbd5e1;
+}
+
+.assign-btn-confirm {
+  background: #2563eb;
+  color: white;
+}
+
+.assign-btn-confirm:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.assign-btn-confirm:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Complaint Info */
+#complaintInfo {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 10px 0;
+  border-left: 3px solid #2563eb;
+  font-size: 14px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+}
+
+.loading-spinner i {
+  font-size: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Scrollbar */
+.officer-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.officer-list::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.officer-list::-webkit-scrollbar-thumb {
+  background: #2563eb;
+  border-radius: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .assign-modal-content {
+    padding: 20px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .assign-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+    min-width: 65px;
+  }
+}
