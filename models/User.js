@@ -1,4 +1,4 @@
-﻿ const mongoose = require('mongoose');
+ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
@@ -91,10 +91,10 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Update rewards level and check for Responsible Citizen badge
+// Update rewards level and check for badges
 userSchema.methods.updateRewardsLevel = function() {
     const points = this.rewards.points || 0;
-    
+
     // Update level based on points
     if (points >= 1000) {
         this.rewards.level = 'Platinum';
@@ -106,9 +106,19 @@ userSchema.methods.updateRewardsLevel = function() {
         this.rewards.level = 'Bronze';
     }
 
-    // Responsible Citizen Logic (100+ points)
+    // Community Helper Badge at 50 points
+    const hasCommunityBadge = this.rewards.badges.some(b => b.name === 'Community Helper');
+    if (points >= 50 && !hasCommunityBadge) {
+        this.rewards.badges.push({
+            name: 'Community Helper',
+            description: 'Earned 50+ points by actively reporting civic issues',
+            icon: '🌟',
+            dateEarned: new Date()
+        });
+    }
+
+    // Responsible Citizen Badge at 100 points
     const hasResponsibleBadge = this.rewards.badges.some(b => b.name === 'Responsible Citizen');
-    
     if (points >= 100 && !hasResponsibleBadge) {
         this.rewards.badges.push({
             name: 'Responsible Citizen',
@@ -118,7 +128,7 @@ userSchema.methods.updateRewardsLevel = function() {
         });
         this.isResponsibleCitizen = true;
     }
-    
+
     return this.rewards;
 };
 
