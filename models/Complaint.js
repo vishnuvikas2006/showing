@@ -54,7 +54,7 @@ const complaintSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Submitted', 'Under Review', 'Assigned', 'In Progress', 'Resolved', 'Closed', 'Emergency'],
+        enum: ['Submitted', 'Under Review', 'Assigned', 'In Progress', 'Work Submitted', 'Resolved', 'Closed', 'Emergency'],
         default: 'Submitted'
     },
     priority: {
@@ -110,6 +110,16 @@ const complaintSchema = new mongoose.Schema({
             ref: 'User'
         },
         remarks: String
+    },
+    officerReport: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'OfficerReport',
+        default: null
+    },
+    pointsAwarded: {
+        submission: { type: Boolean, default: false },
+        verification: { type: Boolean, default: false },
+        resolution: { type: Boolean, default: false }
     },
     views: {
         type: Number,
