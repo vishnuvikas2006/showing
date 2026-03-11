@@ -19,6 +19,84 @@
     <!-- html2canvas for PDF screenshots -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="./css/admin.css" />
+    <style>
+      /* ---- Tab Navigation ---- */
+      .admin-tabs {
+        display: flex; gap: 8px; padding: 1.5rem 2rem 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        flex-wrap: wrap;
+      }
+      .admin-tab-btn {
+        padding: 10px 22px; border: none; border-radius: 10px 10px 0 0;
+        background: rgba(255,255,255,0.2); color: white; font-weight: 600;
+        cursor: pointer; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+      }
+      .admin-tab-btn.active { background: white; color: #667eea; }
+      .admin-tab-btn:hover:not(.active) { background: rgba(255,255,255,0.35); }
+      .tab-section { display: none; }
+      .tab-section.active { display: block; }
+
+      /* ---- Officer Reports ---- */
+      .reports-table-wrap { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+      .rpt-table { width: 100%; border-collapse: collapse; }
+      .rpt-table th { background: #f8faff; padding: 12px 10px; text-align: left; font-size: 0.85rem; color: #4a5568; font-weight: 600; }
+      .rpt-table td { padding: 12px 10px; border-top: 1px solid #f0f4f8; font-size: 0.88rem; vertical-align: top; }
+      .rpt-table tr:hover td { background: #fafbff; }
+      .rpt-status { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+      .rpt-pending { background: #fef3c7; color: #92400e; }
+      .rpt-approved { background: #d1fae5; color: #065f46; }
+      .rpt-rejected { background: #fee2e2; color: #991b1b; }
+      .rpt-correction { background: #e0e7ff; color: #3730a3; }
+      .rpt-action-btn {
+        padding: 5px 12px; border-radius: 7px; border: none; cursor: pointer;
+        font-size: 0.78rem; font-weight: 600; margin: 2px;
+      }
+      .btn-approve { background: #d1fae5; color: #065f46; }
+      .btn-reject { background: #fee2e2; color: #991b1b; }
+      .btn-correction { background: #e0e7ff; color: #3730a3; }
+      .bill-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; cursor: pointer; }
+
+      /* ---- Review Modal ---- */
+      .review-modal {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.5); z-index: 1000;
+        align-items: center; justify-content: center;
+      }
+      .review-modal.active { display: flex; }
+      .review-modal-content {
+        background: white; border-radius: 16px; padding: 2rem;
+        width: 90%; max-width: 480px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        animation: fadeIn 0.25s ease;
+      }
+      @keyframes fadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+      .review-modal-content h3 { color: #2d3748; margin-bottom: 1rem; }
+      .review-modal-content textarea {
+        width:100%; padding:10px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+        font-size: 0.9rem; box-sizing: border-box; margin-top: 8px; outline: none;
+      }
+      .review-modal-content textarea:focus { border-color: #667eea; }
+      .review-actions { display: flex; gap: 8px; margin-top: 1.2rem; flex-wrap: wrap; }
+      .rev-approve { flex:1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+      .rev-reject { flex:1; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+      .rev-correction { flex:1; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+      .rev-cancel { padding: 10px 16px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+
+      /* ---- Leaderboard ---- */
+      .leaderboard-wrap { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+      .leaderboard-table { width: 100%; border-collapse: collapse; }
+      .leaderboard-table th { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px 10px; text-align: left; font-size: 0.85rem; font-weight: 600; }
+      .leaderboard-table td { padding: 12px 10px; border-top: 1px solid #f0f4f8; font-size: 0.88rem; }
+      .leaderboard-table tr:hover td { background: #fafbff; }
+      .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+      .rank-1 { background: #fbbf24; color: #78350f; }
+      .rank-2 { background: #94a3b8; color: white; }
+      .rank-3 { background: #b45309; color: white; }
+      .rank-other { background: #e2e8f0; color: #4a5568; }
+      .lb-badge { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; margin: 2px; }
+      .lb-badge.responsible { background: #fef3c7; color: #92400e; }
+      .pts-display { font-size: 1.2rem; font-weight: 700; color: #667eea; }
+    </style>
   </head>
   <body>
     <div class="dashboard-header">
@@ -37,7 +115,24 @@
       </div>
     </div>
 
+    <!-- Admin Tab Navigation -->
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" onclick="switchTab('complaints', this)">
+        <i class="fas fa-list"></i> Complaints
+      </button>
+      <button class="admin-tab-btn" onclick="switchTab('reports', this)">
+        <i class="fas fa-file-invoice-dollar"></i> Officer Reports
+        <span id="pendingReportsBadge" style="background:#ef4444;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;display:none;">0</span>
+      </button>
+      <button class="admin-tab-btn" onclick="switchTab('leaderboard', this)">
+        <i class="fas fa-trophy"></i> Leaderboard
+      </button>
+    </div>
+
     <div class="dashboard-content">
+      <!-- COMPLAINTS TAB -->
+      <div id="tab-complaints" class="tab-section active">
+
       <!-- Filter Section -->
       <div class="filter-section">
         <div class="date-range">
@@ -194,6 +289,66 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div> <!-- end dashboard-content complaints section inner -->
+    </div> <!-- end tab-complaints -->
+
+    <!-- OFFICER REPORTS TAB -->
+    <div id="tab-reports" class="tab-section dashboard-content">
+      <div class="reports-table-wrap">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;">
+          <h3 style="font-size:1.2rem; color:#2d3748; margin:0;">
+            <i class="fas fa-file-invoice-dollar"></i> Officer Work Reports
+          </h3>
+          <select id="reportStatusFilter" onchange="filterReports()" style="padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; color:#4a5568;">
+            <option value="all">All Reports</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Correction Required">Correction Required</option>
+          </select>
+        </div>
+        <div id="reportsTableContainer">
+          <div style="text-align:center; padding:2rem; color:#718096;">
+            <i class="fas fa-spinner fa-spin"></i> Loading reports...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div id="tab-leaderboard" class="tab-section dashboard-content">
+      <div class="leaderboard-wrap">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
+          <h3 style="font-size:1.2rem; color:#2d3748; margin:0;">
+            <i class="fas fa-trophy" style="color:#fbbf24"></i> Citizen Leaderboard — Top Contributors
+          </h3>
+          <button onclick="loadLeaderboard()" style="background:#667eea; color:white; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:0.85rem;">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div id="leaderboardContainer">
+          <div style="text-align:center; padding:2rem; color:#718096;">
+            <i class="fas fa-spinner fa-spin"></i> Loading leaderboard...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Review Modal -->
+    <div class="review-modal" id="reviewModal">
+      <div class="review-modal-content">
+        <h3><i class="fas fa-gavel" style="color:#667eea"></i> Review Officer Report</h3>
+        <p id="reviewReportInfo" style="color:#718096; margin-bottom:12px;"></p>
+        <div id="reviewReportDetails" style="background:#f8faff; border-radius:10px; padding:12px; margin-bottom:12px; font-size:0.9rem; color:#4a5568;"></div>
+        <label style="font-weight:600; color:#4a5568; display:block; margin-bottom:4px;">Admin Remarks</label>
+        <textarea id="reviewRemarks" rows="3" placeholder="Add remarks (required for Rejection / Correction)..." style="width:100%"></textarea>
+        <div class="review-actions">
+          <button class="rev-approve" onclick="submitReview('Approved')"><i class="fas fa-check"></i> Approve</button>
+          <button class="rev-correction" onclick="submitReview('Correction Required')"><i class="fas fa-redo"></i> Request Correction</button>
+          <button class="rev-reject" onclick="submitReview('Rejected')"><i class="fas fa-times"></i> Reject</button>
+          <button class="rev-cancel" onclick="closeReviewModal()">Cancel</button>
+        </div>
       </div>
     </div>
 
@@ -1081,6 +1236,209 @@
         .getElementById("officerSearch")
         .addEventListener("input", loadOfficersList);
 
+      // ---- Tab Switching ----
+      function switchTab(tabName, btnEl) {
+        document.querySelectorAll(".tab-section").forEach(s => s.classList.remove("active"));
+        document.querySelectorAll(".admin-tab-btn").forEach(b => b.classList.remove("active"));
+        document.getElementById("tab-" + tabName).classList.add("active");
+        btnEl.classList.add("active");
+        if (tabName === "reports") loadReports();
+        if (tabName === "leaderboard") loadLeaderboard();
+      }
+
+      // ---- Officer Reports ----
+      let allReports = [];
+
+      async function loadReports() {
+        const container = document.getElementById("reportsTableContainer");
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#718096;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        try {
+          const res = await fetch("/api/reports", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (res.ok) {
+            allReports = data;
+            renderReports(allReports);
+            // Update pending badge
+            const pending = allReports.filter(r => r.adminStatus === "Pending").length;
+            const badge = document.getElementById("pendingReportsBadge");
+            if (pending > 0) { badge.textContent = pending; badge.style.display = "inline"; }
+            else { badge.style.display = "none"; }
+          } else {
+            container.innerHTML = '<p style="color:#e53e3e;text-align:center;">Failed to load reports.</p>';
+          }
+        } catch (e) {
+          container.innerHTML = '<p style="color:#e53e3e;text-align:center;">Network error.</p>';
+        }
+      }
+
+      function filterReports() {
+        const filter = document.getElementById("reportStatusFilter").value;
+        const filtered = filter === "all" ? allReports : allReports.filter(r => r.adminStatus === filter);
+        renderReports(filtered);
+      }
+
+      function renderReports(reports) {
+        const container = document.getElementById("reportsTableContainer");
+        if (!reports.length) {
+          container.innerHTML = '<p style="text-align:center;color:#718096;padding:1.5rem;">No reports found.</p>';
+          return;
+        }
+        container.innerHTML = `
+          <div style="overflow-x:auto;">
+          <table class="rpt-table">
+            <thead>
+              <tr>
+                <th>Report ID</th>
+                <th>Complaint</th>
+                <th>Officer</th>
+                <th>Work Description</th>
+                <th>Completion Date</th>
+                <th>Bill Amount</th>
+                <th>Bill</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${reports.map(r => {
+                const sc = { Pending:"rpt-pending", Approved:"rpt-approved", Rejected:"rpt-rejected", "Correction Required":"rpt-correction" }[r.adminStatus] || "rpt-pending";
+                const billHtml = r.billFile
+                  ? (r.billFile.match(/\.(jpg|jpeg|png|gif)$/i)
+                      ? `<img src="${r.billFile}" class="bill-thumb" onclick="viewMedia('${r.billFile}')">`
+                      : `<a href="${r.billFile}" target="_blank" style="color:#667eea;font-size:0.85rem;"><i class="fas fa-file-pdf"></i> View</a>`)
+                  : '<span style="color:#a0aec0;font-size:0.8rem;">No file</span>';
+                const canReview = r.adminStatus === "Pending" || r.adminStatus === "Correction Required";
+                return `
+                  <tr>
+                    <td><strong style="color:#667eea;">${r.reportId}</strong><br><small style="color:#718096;">${new Date(r.createdAt).toLocaleDateString()}</small></td>
+                    <td><strong>${r.complaint?.complaintId || "N/A"}</strong><br><small>${r.complaint?.title || ""}</small><br><small style="color:#718096;">${r.complaint?.category || ""}</small></td>
+                    <td><strong>${r.officerName}</strong><br><small style="color:#718096;">${r.officer?.department || ""}</small></td>
+                    <td style="max-width:180px;">${r.workDescription.substring(0,100)}${r.workDescription.length>100?"...":""}<br>${r.materialsUsed ? '<small style="color:#718096;">Materials: '+r.materialsUsed.substring(0,60)+'</small>' : ''}</td>
+                    <td>${new Date(r.completionDate).toLocaleDateString()}</td>
+                    <td><strong style="color:#2d3748;">₹${r.billAmount.toLocaleString()}</strong></td>
+                    <td>${billHtml}</td>
+                    <td><span class="rpt-status ${sc}">${r.adminStatus}</span>${r.adminRemarks ? '<br><small style="color:#718096;font-size:0.75rem;">'+r.adminRemarks.substring(0,40)+'</small>' : ''}</td>
+                    <td>${canReview ? `<button class="rpt-action-btn btn-approve" onclick="openReviewModal('${r._id}', '${r.reportId}', '${r.billAmount}', \`${r.workDescription.replace(/`/g,"'")}\`)"><i class="fas fa-gavel"></i> Review</button>` : '<span style="color:#a0aec0;font-size:0.8rem;">Reviewed</span>'}</td>
+                  </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+          </div>`;
+      }
+
+      // ---- Review Modal ----
+      let selectedReportId = null;
+
+      function openReviewModal(reportId, reportNum, billAmount, workDesc) {
+        selectedReportId = reportId;
+        document.getElementById("reviewReportInfo").innerHTML = `<strong>Report:</strong> ${reportNum}`;
+        document.getElementById("reviewReportDetails").innerHTML = `
+          <div><strong>Work Done:</strong> ${workDesc}</div>
+          <div style="margin-top:6px;"><strong>Bill Amount:</strong> <span style="color:#667eea;font-size:1.1rem;">₹${parseFloat(billAmount).toLocaleString()}</span></div>`;
+        document.getElementById("reviewRemarks").value = "";
+        document.getElementById("reviewModal").classList.add("active");
+      }
+
+      function closeReviewModal() {
+        document.getElementById("reviewModal").classList.remove("active");
+        selectedReportId = null;
+      }
+
+      async function submitReview(status) {
+        if (!selectedReportId) return;
+        const remarks = document.getElementById("reviewRemarks").value.trim();
+        if ((status === "Rejected" || status === "Correction Required") && !remarks) {
+          showToast("Please add remarks for Rejection / Correction", "error");
+          return;
+        }
+        try {
+          const res = await fetch(`/api/reports/${selectedReportId}/review`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ adminStatus: status, adminRemarks: remarks })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`Report ${status} successfully!`, "success");
+            closeReviewModal();
+            loadReports();
+            fetchAllData(); // Refresh complaint stats
+          } else {
+            showToast("Error: " + data.error, "error");
+          }
+        } catch (e) {
+          showToast("Failed to submit review", "error");
+        }
+      }
+
+      // ---- Leaderboard ----
+      async function loadLeaderboard() {
+        const container = document.getElementById("leaderboardContainer");
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#718096;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        try {
+          const res = await fetch("/api/admin/leaderboard", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (res.ok) {
+            renderLeaderboard(data);
+          } else {
+            container.innerHTML = '<p style="color:#e53e3e;text-align:center;">Failed to load leaderboard.</p>';
+          }
+        } catch (e) {
+          container.innerHTML = '<p style="color:#e53e3e;text-align:center;">Network error.</p>';
+        }
+      }
+
+      function renderLeaderboard(citizens) {
+        const container = document.getElementById("leaderboardContainer");
+        if (!citizens.length) {
+          container.innerHTML = '<p style="text-align:center;color:#718096;padding:1.5rem;">No citizen data yet.</p>';
+          return;
+        }
+        container.innerHTML = `
+          <div style="overflow-x:auto;">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Citizen</th>
+                <th>Points</th>
+                <th>Level</th>
+                <th>Badges</th>
+                <th>Complaints Filed</th>
+                <th>Resolved</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${citizens.map((c, i) => {
+                const rankClass = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "rank-other";
+                const rankIcon = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "";
+                const badgesHtml = c.badges && c.badges.length
+                  ? c.badges.map(b => `<span class="lb-badge ${b.name==='Responsible Citizen'?'responsible':''}">${b.icon || ""} ${b.name}</span>`).join("")
+                  : '<span style="color:#a0aec0;font-size:0.8rem;">No badges</span>';
+                return `
+                  <tr>
+                    <td><span class="rank-badge ${rankClass}">${rankIcon || (i+1)}</span></td>
+                    <td>
+                      <strong style="color:#2d3748;">${c.name}</strong>
+                      <br><small style="color:#718096;">${c.email}</small>
+                      ${c.isResponsibleCitizen ? '<br><span style="color:#d97706;font-size:0.75rem;">⭐ Responsible Citizen</span>' : ''}
+                    </td>
+                    <td><span class="pts-display">${c.points}</span></td>
+                    <td><span style="background:#e0e7ff;color:#3730a3;padding:3px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">${c.level}</span></td>
+                    <td>${badgesHtml}</td>
+                    <td style="text-align:center;">${c.totalComplaints}</td>
+                    <td style="text-align:center;">${c.resolvedComplaints}</td>
+                  </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+          </div>`;
+      }
+
       // Initialize
       fetchAllData();
 
@@ -1088,10 +1446,24 @@
       window.onclick = function (event) {
         const assignModal = document.getElementById("assignModal");
         const mediaModal = document.getElementById("mediaModal");
+        const reviewModal = document.getElementById("reviewModal");
 
         if (event.target === assignModal) closeAssignModal();
         if (event.target === mediaModal) closeMediaModal();
+        if (event.target === reviewModal) closeReviewModal();
       };
+
+      // On load, also count pending reports for badge (non-blocking)
+      fetch("/api/reports", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            allReports = data;
+            const pending = data.filter(r => r.adminStatus === "Pending").length;
+            const badge = document.getElementById("pendingReportsBadge");
+            if (pending > 0) { badge.textContent = pending; badge.style.display = "inline"; }
+          }
+        }).catch(() => {});
     </script>
   </body>
 </html>
