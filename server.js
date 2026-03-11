@@ -12,6 +12,7 @@ require('dotenv').config();
 const User = require('./models/User');
 const Complaint = require('./models/Complaint');
 const Department = require('./models/Department');
+const OfficerReport = require('./models/OfficerReport');
 
 const app = express();
 
@@ -321,14 +322,16 @@ app.post('/api/complaints', authenticateToken, upload.array('media', 5), async (
         await complaint.save();
         console.log('✅ Complaint saved with ID:', complaint.complaintId);
         
-        // Update user rewards (5 points for submitting complaint)
+        // Award 10 points for submitting complaint
         try {
             const user = await User.findById(req.user.id);
             if (user) {
-                user.rewards.points = (user.rewards.points || 0) + 5;
+                user.rewards.points = (user.rewards.points || 0) + 10;
                 user.updateRewardsLevel();
                 await user.save();
             }
+            complaint.pointsAwarded.submission = true;
+            await complaint.save();
         } catch (rewardError) {
             console.error('Error updating rewards:', rewardError);
         }
@@ -473,21 +476,13 @@ app.patch('/api/complaints/:id/status', authenticateToken, authorize('officer', 
             updatedBy: req.user.id
         });
         
-        // If resolved, add resolution details
-        if (status === 'Resolved') {
+        // If resolved directly by admin, add resolution details
+        if (status === 'Resolved' && req.user.role === 'admin') {
             complaint.resolution = {
                 resolvedAt: new Date(),
                 resolvedBy: req.user.id,
                 remarks: remark
             };
-            
-            // Add rewards to citizen (10 points for resolved complaint)
-            const citizen = await User.findById(complaint.citizen);
-            if (citizen) {
-                citizen.rewards.points += 10;
-                citizen.updateRewardsLevel();
-                await citizen.save();
-            }
         }
         
         await complaint.save();
@@ -601,15 +596,26 @@ app.post('/api/admin/assign', authenticateToken, authorize('admin'), async (req,
             officer: officerId,
             assignedAt: new Date()
         };
-        
+        complaint.status = 'Assigned';
         complaint.timeline.push({
-            status: complaint.status,
+            status: 'Assigned',
             remark: `Assigned to ${officer.name} (${department || officer.department})`,
             updatedBy: req.user.id
         });
-        
+
+        // Award 20 points to citizen for complaint verified as valid (first time only)
+        if (!complaint.pointsAwarded.verification) {
+            complaint.pointsAwarded.verification = true;
+            const citizen = await User.findById(complaint.citizen);
+            if (citizen) {
+                citizen.rewards.points = (citizen.rewards.points || 0) + 20;
+                citizen.updateRewardsLevel();
+                await citizen.save();
+            }
+        }
+
         await complaint.save();
-        
+
         // Populate officer details for response
         await complaint.populate('assignedTo.officer', 'name email department');
         
@@ -737,6 +743,205 @@ app.post('/api/complaints/:id/feedback', authenticateToken, async (req, res) => 
     } catch (error) {
         console.error('Feedback error:', error);
         res.status(500).json({ error: 'Failed to submit feedback' });
+    }
+});
+
+// ============ OFFICER REPORT ROUTES ============
+
+// Officer submits work completion report
+app.post('/api/reports', authenticateToken, authorize('officer'), upload.single('billFile'), async (req, res) => {
+    try {
+        const { complaintId, workDescription, materialsUsed, completionDate, billAmount } = req.body;
+
+        if (!complaintId || !workDescription || !completionDate || !billAmount) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const complaint = await Complaint.findById(complaintId);
+        if (!complaint) {
+            return res.status(404).json({ error: 'Complaint not found' });
+        }
+
+        // Ensure officer is assigned to this complaint
+        if (complaint.assignedTo.officer && complaint.assignedTo.officer.toString() !== req.user.id) {
+            return res.status(403).json({ error: 'You are not assigned to this complaint' });
+        }
+
+        const officerUser = await User.findById(req.user.id);
+
+        const billFile = req.file ? `/uploads/${req.file.filename}` : null;
+
+        const report = new OfficerReport({
+            complaint: complaintId,
+            officer: req.user.id,
+            officerName: officerUser.name,
+            workDescription,
+            materialsUsed: materialsUsed || '',
+            completionDate: new Date(completionDate),
+            billAmount: parseFloat(billAmount),
+            billFile
+        });
+
+        await report.save();
+
+        // Update complaint status to Work Submitted and link report
+        complaint.status = 'Work Submitted';
+        complaint.officerReport = report._id;
+        complaint.timeline.push({
+            status: 'Work Submitted',
+            remark: `Work completion report submitted by ${officerUser.name}. Bill Amount: ₹${billAmount}`,
+            updatedBy: req.user.id
+        });
+        await complaint.save();
+
+        res.status(201).json({
+            message: 'Work report submitted successfully. Awaiting admin approval.',
+            report: { id: report._id, reportId: report.reportId }
+        });
+    } catch (error) {
+        console.error('Report submission error:', error);
+        res.status(500).json({ error: 'Failed to submit report: ' + error.message });
+    }
+});
+
+// Get officer reports (officer: own, admin: all)
+app.get('/api/reports', authenticateToken, async (req, res) => {
+    try {
+        const query = {};
+        if (req.user.role === 'officer') {
+            query.officer = req.user.id;
+        }
+
+        const reports = await OfficerReport.find(query)
+            .populate('complaint', 'complaintId title category status')
+            .populate('officer', 'name email department')
+            .sort({ createdAt: -1 });
+
+        res.json(reports);
+    } catch (error) {
+        console.error('Fetch reports error:', error);
+        res.status(500).json({ error: 'Failed to fetch reports' });
+    }
+});
+
+// Get single report
+app.get('/api/reports/:id', authenticateToken, async (req, res) => {
+    try {
+        const report = await OfficerReport.findById(req.params.id)
+            .populate('complaint', 'complaintId title category status citizen')
+            .populate('officer', 'name email department')
+            .populate('reviewedBy', 'name');
+
+        if (!report) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+
+        res.json(report);
+    } catch (error) {
+        console.error('Fetch report error:', error);
+        res.status(500).json({ error: 'Failed to fetch report' });
+    }
+});
+
+// Admin reviews officer report (Approve / Reject / Correction Required)
+app.patch('/api/reports/:id/review', authenticateToken, authorize('admin'), async (req, res) => {
+    try {
+        const { adminStatus, adminRemarks } = req.body;
+
+        if (!['Approved', 'Rejected', 'Correction Required'].includes(adminStatus)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        const report = await OfficerReport.findById(req.params.id).populate('complaint');
+        if (!report) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+
+        report.adminStatus = adminStatus;
+        report.adminRemarks = adminRemarks || '';
+        report.reviewedBy = req.user.id;
+        report.reviewedAt = new Date();
+        await report.save();
+
+        const complaint = await Complaint.findById(report.complaint._id);
+
+        if (adminStatus === 'Approved') {
+            // Set complaint to Resolved
+            complaint.status = 'Resolved';
+            complaint.resolution = {
+                resolvedAt: new Date(),
+                resolvedBy: req.user.id,
+                remarks: adminRemarks || 'Work approved by admin'
+            };
+            complaint.timeline.push({
+                status: 'Resolved',
+                remark: `Work report approved by admin. ${adminRemarks || ''}`,
+                updatedBy: req.user.id
+            });
+
+            // Award 30 points to citizen for resolution (first time only)
+            if (!complaint.pointsAwarded.resolution) {
+                complaint.pointsAwarded.resolution = true;
+                const citizen = await User.findById(complaint.citizen);
+                if (citizen) {
+                    citizen.rewards.points = (citizen.rewards.points || 0) + 30;
+                    citizen.updateRewardsLevel();
+                    await citizen.save();
+                }
+            }
+        } else if (adminStatus === 'Rejected') {
+            complaint.status = 'In Progress';
+            complaint.officerReport = null;
+            complaint.timeline.push({
+                status: 'In Progress',
+                remark: `Work report rejected by admin. Reason: ${adminRemarks || 'Not specified'}`,
+                updatedBy: req.user.id
+            });
+        } else if (adminStatus === 'Correction Required') {
+            complaint.timeline.push({
+                status: 'Work Submitted',
+                remark: `Correction required: ${adminRemarks || 'Please revise and resubmit'}`,
+                updatedBy: req.user.id
+            });
+        }
+
+        await complaint.save();
+
+        res.json({ message: `Report ${adminStatus} successfully`, report });
+    } catch (error) {
+        console.error('Report review error:', error);
+        res.status(500).json({ error: 'Failed to review report: ' + error.message });
+    }
+});
+
+// Admin: Citizen leaderboard (top citizens by points)
+app.get('/api/admin/leaderboard', authenticateToken, authorize('admin'), async (req, res) => {
+    try {
+        const citizens = await User.find({ role: 'citizen', isActive: true }, '-password')
+            .sort({ 'rewards.points': -1 })
+            .limit(20);
+
+        // Enrich with complaint counts
+        const leaderboard = await Promise.all(citizens.map(async (c) => {
+            const totalComplaints = await Complaint.countDocuments({ citizen: c._id });
+            const resolvedComplaints = await Complaint.countDocuments({ citizen: c._id, status: 'Resolved' });
+            return {
+                _id: c._id,
+                name: c.name,
+                email: c.email,
+                points: c.rewards.points || 0,
+                level: c.rewards.level,
+                badges: c.rewards.badges,
+                isResponsibleCitizen: c.isResponsibleCitizen,
+                totalComplaints,
+                resolvedComplaints
+            };
+        }));
+
+        res.json(leaderboard);
+    } catch (error) {
+        console.error('Leaderboard error:', error);
+        res.status(500).json({ error: 'Failed to fetch leaderboard' });
     }
 });
 
